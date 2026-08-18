@@ -68,6 +68,7 @@ export type ChatMessage = {
   from: "buyer" | "seller";
   text: string;
   createdAt: string;
+  editedAt?: string;
 };
 
 export type Report = {
@@ -76,5 +77,17 @@ export type Report = {
   listingTitle: string;
   reason: string;
   status: "open" | "resolved";
+  createdAt: string;
+};
+
+export type AppNotification = {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  href: string;
+  type: "message" | "listing" | "system";
+  threadId?: string;
+  read: boolean;
   createdAt: string;
 };

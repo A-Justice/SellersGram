@@ -18,7 +18,10 @@ export async function POST(request: Request) {
 
     const user = await requireUser(request);
     const form = await request.formData();
-    const files = form.getAll("files").filter((item): item is File => item instanceof File);
+    const files = form
+      .getAll("files")
+      .concat(form.getAll("file"))
+      .filter((item): item is File => typeof File !== "undefined" && item instanceof File && item.size > 0);
 
     if (!files.length) {
       return NextResponse.json({ error: "Choose at least one photo." }, { status: 400 });

@@ -72,3 +72,23 @@ textarea.field {
   font-size: 12px;
   color: var(--muted);
 }
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--line) 0%,
+    color-mix(in srgb, var(--paper) 80%, var(--line)) 45%,
+    var(--line) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.15s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { PhotoPicker } from "@/components/PhotoPicker";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { useAuth } from "@/context/AuthContext";
 import { CATEGORIES, SUBCATEGORIES } from "@/lib/categories";
 import { createListing } from "@/lib/listings-store";
@@ -11,7 +12,7 @@ import { REGIONS } from "@/lib/regions";
 const STEPS = ["Photos", "Details", "Place", "Contact"];
 
 export default function SellPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
@@ -31,6 +32,8 @@ export default function SellPage() {
     () => REGIONS.find((region) => region.id === regionId)?.cities || [],
     [regionId],
   );
+
+  if (loading) return <PageSkeleton />;
 
   if (!user) {
     return (

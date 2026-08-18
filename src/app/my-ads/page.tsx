@@ -1,5 +1,7 @@
 "use client";
 
+import { DeleteAdButton } from "@/components/DeleteAdButton";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { RemoteImage } from "@/components/RemoteImage";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -10,13 +12,15 @@ import { boostDaysLeft, formatGhs, isBoosted } from "@/lib/format";
 import { useListings } from "@/lib/use-listings";
 
 function MyAds() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { listings } = useListings();
   const posted = useSearchParams().get("posted");
   const mine = listings.filter((listing) => {
     if (!user) return false;
     return listing.sellerId === user.uid || listing.seller.id === user.uid;
   });
+
+  if (loading) return <PageSkeleton />;
 
   if (!user) {
     return (
@@ -35,7 +39,7 @@ function MyAds() {
       <div>
         <h1 className="font-display text-4xl tracking-tight">My ads</h1>
         <p className="mt-2 text-sm text-muted">
-          Edit, mark sold, or boost a live ad.
+          Edit, mark sold, boost, or delete an ad.
         </p>
       </div>
       {posted && (
@@ -80,6 +84,7 @@ function MyAds() {
                     </button>
                   </>
                 )}
+                <DeleteAdButton listing={listing} />
               </div>
             </div>
           </li>

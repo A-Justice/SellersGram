@@ -5,10 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { MessageCircle, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "./Logo";
+import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
 
 export function Header() {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const hideSearch =
@@ -31,6 +32,7 @@ export function Header() {
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
+          {user && <NotificationBell />}
           <Link
             href="/inbox"
             className="hidden rounded-full p-2.5 text-ink hover:bg-paper sm:inline-flex"
@@ -45,7 +47,9 @@ export function Header() {
             <Plus className="size-4" />
             Sell
           </Link>
-          {user ? (
+          {loading ? (
+            <span className="skeleton h-10 w-10 rounded-full md:w-24" />
+          ) : user ? (
             <>
               <Link
                 href="/account"
@@ -57,7 +61,7 @@ export function Header() {
               <button
                 type="button"
                 onClick={() => void logOut()}
-                className="h-10 rounded-full px-3 text-sm font-medium text-ink hover:bg-paper"
+                className="hidden h-10 items-center px-3 text-sm font-medium text-ink hover:text-accent md:inline-flex"
               >
                 Log out
               </button>

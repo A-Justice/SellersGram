@@ -14,16 +14,17 @@ export function PhotoPicker({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function onFiles(files: FileList | null) {
-    if (!files?.length) return;
+  async function onFiles(list: FileList | File[] | null) {
+    const selected = list ? Array.from(list) : [];
+    if (!selected.length) return;
     setError("");
     setBusy(true);
     try {
       const token = await auth?.currentUser?.getIdToken();
       if (!token) throw new Error("Sign in to upload photos.");
       const body = new FormData();
-      for (const file of Array.from(files).slice(0, 6 - urls.length)) {
-        body.append("files", file);
+      for (const file of selected.slice(0, 6 - urls.length)) {
+        body.append("files", file, file.name);
       }
       const response = await fetch("/api/uploads", {
         method: "POST",
@@ -62,11 +63,13 @@ export function PhotoPicker({
               type="file"
               accept="image/*"
               multiple
+              name="files"
               className="hidden"
               disabled={busy}
               onChange={(event) => {
-                void onFiles(event.target.files);
+                const selected = event.target.files ? Array.from(event.target.files) : [];
                 event.target.value = "";
+                void onFiles(selected);
               }}
             />
           </label>

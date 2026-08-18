@@ -7,7 +7,9 @@ import { useListings } from "@/lib/use-listings";
 export default function SellerPage() {
   const { id } = useParams<{ id: string }>();
   const { live } = useListings();
-  const ads = live.filter((listing) => listing.seller.id === id);
+  const ads = live.filter(
+    (listing) => listing.seller.id === id || listing.sellerId === id,
+  );
   const seller = ads[0]?.seller;
 
   if (!seller) {

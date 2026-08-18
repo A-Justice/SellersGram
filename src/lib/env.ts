@@ -8,6 +8,7 @@ export const publicEnv = {
   firebaseMeasurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "",
   paystackPublicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
   appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "",
 };
 
 export const isFirebaseConfigured = Boolean(

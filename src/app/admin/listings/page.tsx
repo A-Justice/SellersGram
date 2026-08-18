@@ -1,6 +1,7 @@
 "use client";
 
 import { RemoteImage } from "@/components/RemoteImage";
+import { DeleteAdButton } from "@/components/DeleteAdButton";
 import { setListingStatus } from "@/lib/listings-store";
 import { formatGhs } from "@/lib/format";
 import { useListings } from "@/lib/use-listings";
@@ -41,7 +42,7 @@ export default function AdminListingsPage() {
               <p className="text-sm text-muted">
                 {formatGhs(listing.priceGhs)} · {listing.city} · {listing.seller.name}
               </p>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => act(listing.id, "live")}
@@ -56,6 +57,10 @@ export default function AdminListingsPage() {
                 >
                   Reject
                 </button>
+                <DeleteAdButton
+                  listing={listing}
+                  className="h-9 rounded-full px-3 text-sm text-red-700"
+                />
               </div>
             </div>
           </article>
@@ -67,9 +72,10 @@ export default function AdminListingsPage() {
           All
         </h2>
         {rest.map((listing) => (
-          <div key={listing.id} className="flex items-center justify-between text-sm">
-            <span className="truncate pr-4">{listing.title}</span>
-            <span className="text-muted">{listing.status}</span>
+          <div key={listing.id} className="flex items-center justify-between gap-3 text-sm">
+            <span className="min-w-0 truncate pr-4">{listing.title}</span>
+            <span className="shrink-0 text-muted">{listing.status}</span>
+            <DeleteAdButton listing={listing} className="shrink-0 text-red-700" />
           </div>
         ))}
       </section>

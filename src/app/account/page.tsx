@@ -2,16 +2,21 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DeviceAlertsCard } from "@/components/DeviceAlertsCard";
+import { InstallAppCard } from "@/components/InstallAppCard";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { useAuth } from "@/context/AuthContext";
 
 export default function AccountPage() {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const router = useRouter();
 
   async function logOut() {
     await signOut();
     router.push("/");
   }
+
+  if (loading) return <PageSkeleton />;
 
   if (!user) {
     return (
@@ -42,6 +47,9 @@ export default function AccountPage() {
           <Link href="/inbox" className="inline-flex h-11 items-center rounded-full bg-canvas px-4 text-sm">
             Inbox
           </Link>
+          <Link href="/notifications" className="inline-flex h-11 items-center rounded-full bg-canvas px-4 text-sm">
+            Notifications
+          </Link>
           {user.role === "admin" && (
             <Link href="/admin" className="inline-flex h-11 items-center rounded-full bg-ink px-4 text-sm text-paper">
               Admin
@@ -49,6 +57,8 @@ export default function AccountPage() {
           )}
         </div>
       </div>
+      <InstallAppCard />
+      <DeviceAlertsCard />
       <button
         type="button"
         onClick={() => void logOut()}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MessageCircle, Phone, Shield } from "lucide-react";
+import { DeleteAdButton } from "@/components/DeleteAdButton";
 import { RemoteImage } from "@/components/RemoteImage";
 import { ListingGrid } from "@/components/ListingGrid";
 import { TopBadge } from "@/components/TopBadge";
@@ -53,12 +54,17 @@ export default function ListingPage() {
   const top = isBoosted(listing);
   const category = categoryById(listing.categoryId);
   const region = regionById(listing.regionId);
+  const isMine = Boolean(
+    user && (listing.sellerId === user.uid || listing.seller.id === user.uid),
+  );
+  const canDelete = isMine || user?.role === "admin";
 
   async function chat() {
     if (!user) {
       router.push(`/login?next=/listing/${listing!.id}`);
       return;
     }
+    if (isMine) return;
     await startThread(listing!, user, note);
     setSent(true);
     router.push("/inbox");
@@ -123,6 +129,25 @@ export default function ListingPage() {
             {timeAgo(listing.publishedAt || listing.createdAt)}
             {top ? ` · Top for ${boostDaysLeft(listing)} more days` : ""}
           </p>
+          {canDelete && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {isMine && listing.status === "live" && (
+                <Link
+                  href={`/boost/${listing.id}`}
+                  className="inline-flex h-10 items-center rounded-full bg-canvas px-4 text-sm"
+                >
+                  Boost
+                </Link>
+              )}
+              <DeleteAdButton
+                listing={listing}
+                className="inline-flex h-10 items-center rounded-full bg-canvas px-4 text-sm text-red-700"
+                afterDelete={() =>
+                  router.push(isMine ? "/my-ads" : "/admin/listings")
+                }
+              />
+            </div>
+          )}
         </div>
 
         <div className="rounded-[24px] bg-paper p-5 shadow-[0_0_0_1px_var(--color-line)]">
@@ -142,27 +167,37 @@ export default function ListingPage() {
             </Link>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <a
-              href={`tel:${listing.seller.phone}`}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink text-sm font-medium text-paper"
-            >
-              <Phone className="size-4" />
-              Call
-            </a>
-            <button
-              type="button"
-              onClick={chat}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-paper"
-            >
-              <MessageCircle className="size-4" />
-              Chat
-            </button>
+            {isMine ? (
+              <p className="col-span-2 text-sm text-muted">
+                This is your ad. Buyers can call or chat you from here.
+              </p>
+            ) : (
+              <>
+                <a
+                  href={`tel:${listing.seller.phone}`}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink text-sm font-medium text-paper"
+                >
+                  <Phone className="size-4" />
+                  Call
+                </a>
+                <button
+                  type="button"
+                  onClick={chat}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-paper"
+                >
+                  <MessageCircle className="size-4" />
+                  Chat
+                </button>
+              </>
+            )}
           </div>
-          <textarea
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            className="mt-3 h-20 w-full resize-none rounded-2xl bg-canvas px-3 py-2 text-sm outline-none"
-          />
+          {!isMine && (
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="mt-3 h-20 w-full resize-none rounded-2xl bg-canvas px-3 py-2 text-sm outline-none"
+            />
+          )}
           {sent && (
             <p className="mt-2 text-xs text-accent">Message sent to inbox.</p>
           )}
