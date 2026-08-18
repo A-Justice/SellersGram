@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ListingGrid } from "@/components/ListingGrid";
 import { SearchBar } from "@/components/SearchBar";
+import { embedQuery } from "@/lib/embeddings";
 import { useListings } from "@/lib/use-listings";
+import { searchListings } from "@/lib/search";
 import { Suspense } from "react";
 
 function SearchResults() {
@@ -12,26 +14,45 @@ function SearchResults() {
   const q = params.get("q") || "";
   const region = params.get("region") || "";
   const { live, ready } = useListings();
+  const [queryEmbedding, setQueryEmbedding] = useState<number[] | null>(null);
+  const [embedReady, setEmbedReady] = useState(!q.trim());
 
-  const listings = useMemo(() => {
-    return live.filter((listing) => {
-      const haystack = `${listing.title} ${listing.description} ${listing.city}`.toLowerCase();
-      const matchesQuery = q ? haystack.includes(q.toLowerCase()) : true;
-      const matchesRegion = region ? listing.regionId === region : true;
-      return matchesQuery && matchesRegion;
+  useEffect(() => {
+    const query = q.trim();
+    if (!query) {
+      setQueryEmbedding(null);
+      setEmbedReady(true);
+      return;
+    }
+    let cancelled = false;
+    setEmbedReady(false);
+    void embedQuery(query).then((embedding) => {
+      if (cancelled) return;
+      setQueryEmbedding(embedding);
+      setEmbedReady(true);
     });
-  }, [live, q, region]);
+    return () => {
+      cancelled = true;
+    };
+  }, [q]);
+
+  const listings = useMemo(
+    () => searchListings(live, q, region, queryEmbedding),
+    [live, q, region, queryEmbedding],
+  );
 
   return (
     <div className="space-y-6">
       <div className="max-w-2xl">
         <h1 className="font-display text-4xl tracking-tight">Search</h1>
-        <p className="mt-2 text-sm text-muted">Find ads across Ghana.</p>
+        <p className="mt-2 text-sm text-muted">
+          Type a few words — feminine bags, used sofa, Accra phone — even if the ad uses different wording.
+        </p>
         <div className="mt-5">
           <SearchBar defaultQuery={q} defaultRegion={region} />
         </div>
       </div>
-      {ready ? <ListingGrid listings={listings} /> : null}
+      {ready && embedReady ? <ListingGrid listings={listings} /> : null}
     </div>
   );
 }

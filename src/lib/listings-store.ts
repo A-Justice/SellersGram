@@ -21,6 +21,7 @@ import type { Listing, ListingStatus, Seller } from "@/data/types";
 import { db, auth } from "@/lib/firebase";
 import { isOwnerUid } from "@/lib/owner";
 import { notifyUser } from "@/lib/notifications-store";
+import { embedDocuments, listingEmbedText } from "@/lib/embeddings";
 
 function sellerIdOf(listing: Listing) {
   return listing.sellerId || listing.seller.id;
@@ -77,6 +78,8 @@ function toListing(id: string, data: Record<string, unknown>, sellerId?: string)
     boostedUntil: data.boostedUntil ? String(data.boostedUntil) : null,
     createdAt: String(data.createdAt || new Date().toISOString()),
     publishedAt: data.publishedAt ? String(data.publishedAt) : null,
+    embedding: Array.isArray(data.embedding) ? (data.embedding as number[]) : undefined,
+    embeddingSource: data.embeddingSource ? String(data.embeddingSource) : undefined,
   };
 }
 
@@ -100,6 +103,8 @@ function toDoc(listing: Listing) {
     boostedUntil: listing.boostedUntil,
     createdAt: listing.createdAt,
     publishedAt: listing.publishedAt,
+    embedding: listing.embedding || null,
+    embeddingSource: listing.embeddingSource || null,
     updatedAt: serverTimestamp(),
   };
 }
@@ -199,12 +204,60 @@ export function subscribeListings(onChange: (listings: Listing[]) => void): Unsu
   };
 }
 
+async function withEmbedding(listing: Listing): Promise<Listing> {
+  const source = listingEmbedText(listing);
+  if (listing.embedding?.length && listing.embeddingSource === source) return listing;
+  const [embedding] = await embedDocuments([source]);
+  if (!embedding?.length) return listing;
+  return { ...listing, embedding, embeddingSource: source };
+}
+
 export async function upsertListing(listing: Listing) {
   if (!db) throw new Error("Firebase is not connected.");
-  const sellerId = sellerIdOf(listing);
-  await ensureSellerFolder(listing);
-  await setDoc(listingRef(sellerId, listing.id), toDoc(listing), { merge: true });
-  return listing;
+  const next = await withEmbedding(listing);
+  const sellerId = sellerIdOf(next);
+  await ensureSellerFolder(next);
+  await setDoc(listingRef(sellerId, next.id), toDoc(next), { merge: true });
+  return next;
+}
+
+const backfillStarted = new Set<string>();
+
+export async function backfillMissingEmbeddings(listings: Listing[], uid?: string) {
+  if (!db || !uid) return;
+  const missing = listings.filter((listing) => {
+    if (listing.embedding?.length) return false;
+    if (backfillStarted.has(listing.id)) return false;
+    return isOwnerUid(uid) || sellerIdOf(listing) === uid;
+  });
+  if (!missing.length) return;
+
+  const batchItems = missing.slice(0, 16);
+  for (const listing of batchItems) backfillStarted.add(listing.id);
+  try {
+    const sources = batchItems.map((listing) => listingEmbedText(listing));
+    const embeddings = await embedDocuments(sources);
+    await Promise.all(
+      batchItems.map(async (listing, index) => {
+        const embedding = embeddings[index];
+        if (!embedding?.length) {
+          backfillStarted.delete(listing.id);
+          return;
+        }
+        await setDoc(
+          listingRef(sellerIdOf(listing), listing.id),
+          {
+            embedding,
+            embeddingSource: sources[index],
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }),
+    );
+  } catch {
+    for (const listing of batchItems) backfillStarted.delete(listing.id);
+  }
 }
 
 export async function setListingStatus(
@@ -380,6 +433,7 @@ export async function seedOwnerListings(user: {
     },
     { merge: true },
   );
+  const seeded: Listing[] = [];
   for (const listing of SEED_LISTINGS) {
     const next: Listing = {
       ...listing,
@@ -387,7 +441,9 @@ export async function seedOwnerListings(user: {
       sellerId: user.uid,
       seller: { ...seller, city: listing.city },
     };
+    seeded.push(next);
     batch.set(listingRef(user.uid, listing.id), toDoc(next));
   }
   await batch.commit();
+  await backfillMissingEmbeddings(seeded, user.uid);
 }

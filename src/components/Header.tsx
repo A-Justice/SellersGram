@@ -14,6 +14,7 @@ export function Header() {
   const router = useRouter();
   const hideSearch =
     pathname === "/" ||
+    pathname.startsWith("/search") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/login");
 

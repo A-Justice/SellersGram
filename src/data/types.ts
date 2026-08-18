@@ -39,6 +39,8 @@ export type Listing = {
   boostedUntil: string | null;
   createdAt: string;
   publishedAt: string | null;
+  embedding?: number[];
+  embeddingSource?: string;
 };
 
 export type BoostPackage = {

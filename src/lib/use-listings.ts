@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import type { Listing } from "@/data/types";
+import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { sortListings } from "@/lib/format";
-import { subscribeListings } from "@/lib/listings-store";
+import { backfillMissingEmbeddings, subscribeListings } from "@/lib/listings-store";
 
 export function useListings() {
+  const { user } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -22,6 +24,11 @@ export function useListings() {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (!user?.uid || !listings.length) return;
+    void backfillMissingEmbeddings(listings, user.uid);
+  }, [listings, user?.uid]);
 
   return {
     listings,
