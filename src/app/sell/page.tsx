@@ -2,12 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { CategoryAttributesForm } from "@/components/CategoryAttributesForm";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { PageSkeleton } from "@/components/PageSkeleton";
+import { Select } from "@/components/Select";
 import { useAuth } from "@/context/AuthContext";
 import { CATEGORIES, SUBCATEGORIES } from "@/lib/categories";
+import { cleanAttributes } from "@/lib/category-fields";
 import { createListing } from "@/lib/listings-store";
 import { REGIONS } from "@/lib/regions";
+import { normalizeVideoUrlInput, parseVideoUrl } from "@/lib/video-url";
 
 const STEPS = ["Photos", "Details", "Place", "Contact"];
 
@@ -27,6 +31,9 @@ export default function SellPage() {
   const [regionId, setRegionId] = useState("greater-accra");
   const [city, setCity] = useState("Accra");
   const [phone, setPhone] = useState(user?.phone || "");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoError, setVideoError] = useState("");
+  const [attributes, setAttributes] = useState<Record<string, string>>({});
 
   const cities = useMemo(
     () => REGIONS.find((region) => region.id === regionId)?.cities || [],
@@ -53,6 +60,13 @@ export default function SellPage() {
   }
 
   async function submit() {
+    const normalizedVideo = normalizeVideoUrlInput(videoUrl);
+    if (videoUrl.trim() && !normalizedVideo) {
+      setVideoError("Enter a valid YouTube or video link.");
+      setStep(1);
+      return;
+    }
+
     const listing = await createListing({
       title: title || "Untitled item",
       description,
@@ -65,6 +79,8 @@ export default function SellPage() {
       regionId,
       city,
       photoUrls,
+      videoUrl: normalizedVideo,
+      attributes: cleanAttributes(attributes, categoryId, subcategoryId),
       sellerId: user!.uid,
       seller: {
         id: user!.uid,
@@ -128,33 +144,31 @@ export default function SellPage() {
               />
             </Field>
             <Field label="Category">
-              <select
+              <Select
                 value={categoryId}
-                onChange={(event) => {
-                  setCategoryId(event.target.value);
-                  setSubcategoryId(SUBCATEGORIES[event.target.value][0].id);
+                onChange={(value) => {
+                  setCategoryId(value);
+                  setSubcategoryId(SUBCATEGORIES[value][0].id);
+                  setAttributes({});
                 }}
-                className="field"
-              >
-                {CATEGORIES.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                options={CATEGORIES.map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                }))}
+              />
             </Field>
             <Field label="Subcategory">
-              <select
+              <Select
                 value={subcategoryId}
-                onChange={(event) => setSubcategoryId(event.target.value)}
-                className="field"
-              >
-                {(SUBCATEGORIES[categoryId] || []).map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => {
+                  setSubcategoryId(value);
+                  setAttributes({});
+                }}
+                options={(SUBCATEGORIES[categoryId] || []).map((item) => ({
+                  value: item.id,
+                  label: item.name,
+                }))}
+              />
             </Field>
             <Field label="Condition">
               <div className="grid grid-cols-2 gap-2">
@@ -207,40 +221,59 @@ export default function SellPage() {
                 placeholder="Condition, extras, where to meet."
               />
             </Field>
+            <CategoryAttributesForm
+              categoryId={categoryId}
+              subcategoryId={subcategoryId}
+              value={attributes}
+              onChange={setAttributes}
+            />
+            <Field label="Video link (optional)">
+              <input
+                value={videoUrl}
+                onChange={(event) => {
+                  setVideoUrl(event.target.value);
+                  setVideoError("");
+                }}
+                className="field"
+                placeholder="https://youtube.com/watch?v=… or any video link"
+                inputMode="url"
+              />
+              {videoError ? (
+                <p className="text-xs text-red-700">{videoError}</p>
+              ) : (
+                <p className="hint">
+                  Paste a YouTube link or any public video URL. No file upload.
+                </p>
+              )}
+              {videoUrl.trim() && parseVideoUrl(videoUrl)?.kind === "youtube" ? (
+                <p className="text-xs text-accent">YouTube link detected — will embed on your ad.</p>
+              ) : null}
+            </Field>
           </>
         )}
 
         {step === 2 && (
           <>
             <Field label="Region">
-              <select
+              <Select
                 value={regionId}
-                onChange={(event) => {
-                  setRegionId(event.target.value);
-                  const next = REGIONS.find((item) => item.id === event.target.value);
+                onChange={(value) => {
+                  setRegionId(value);
+                  const next = REGIONS.find((item) => item.id === value);
                   setCity(next?.cities[0] || "");
                 }}
-                className="field"
-              >
-                {REGIONS.map((region) => (
-                  <option key={region.id} value={region.id}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
+                options={REGIONS.map((region) => ({
+                  value: region.id,
+                  label: region.name,
+                }))}
+              />
             </Field>
             <Field label="City">
-              <select
+              <Select
                 value={city}
-                onChange={(event) => setCity(event.target.value)}
-                className="field"
-              >
-                {cities.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
+                onChange={setCity}
+                options={cities.map((item) => ({ value: item, label: item }))}
+              />
             </Field>
           </>
         )}

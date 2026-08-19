@@ -15,7 +15,7 @@ export default function AdminHomePage() {
     [String(pending), "Pending ads"],
     [String(live), "Live ads"],
     [String(top), "Active Top Ads"],
-    [`GH₵ ${revenue.toLocaleString()}`, "Boost revenue (demo)"],
+    [`GH₵ ${revenue.toLocaleString()}`, "Boost revenue (est.)"],
   ];
 
   return (

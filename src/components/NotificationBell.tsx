@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell } from "lucide-react";
 import { useNotifications } from "@/context/NotificationsContext";
 import { timeAgo } from "@/lib/format";
@@ -16,7 +16,8 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const recent = items.slice(0, 8);
+  const unreadItems = useMemo(() => items.filter((item) => !item.read), [items]);
+  const recent = unreadItems.slice(0, 8);
 
   useEffect(() => {
     function onPointer(event: MouseEvent) {
@@ -53,24 +54,22 @@ export function NotificationBell() {
         <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-[24px] bg-paper shadow-[0_16px_40px_rgba(20,17,14,0.12),0_0_0_1px_var(--color-line)]">
           <div className="flex items-center justify-between px-4 py-3">
             <p className="font-medium">Notifications</p>
-            {unread > 0 && (
+            {unreadItems.length > 0 && (
               <button
                 type="button"
                 className="text-xs text-accent"
-                onClick={() => void markAllNotificationsRead(items)}
+                onClick={() => void markAllNotificationsRead(unreadItems)}
               >
-                Mark all read
+                Clear all
               </button>
             )}
           </div>
-          <ul className="max-h-[min(24rem,70vh)] overflow-y-auto">
+          <ul className="select-panel-scroll max-h-[min(24rem,70vh)] overflow-y-auto overscroll-contain">
             {recent.map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
-                  className={`w-full px-4 py-3 text-left ${
-                    item.read ? "bg-paper" : "bg-accent/10"
-                  }`}
+                  className="w-full bg-accent/10 px-4 py-3 text-left hover:bg-accent/15"
                   onClick={() => {
                     void markNotificationRead(item.id);
                     setOpen(false);
@@ -85,7 +84,7 @@ export function NotificationBell() {
             ))}
           </ul>
           {!recent.length && (
-            <p className="px-4 py-6 text-sm text-muted">No notifications yet.</p>
+            <p className="px-4 py-6 text-sm text-muted">No new notifications.</p>
           )}
           <Link
             href="/notifications"

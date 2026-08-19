@@ -9,7 +9,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
       </span>
       {!compact && (
         <span className="font-display text-[1.35rem] leading-none tracking-tight text-ink">
-          sellers<span className="text-accent">gram</span>
+          vendors<span className="text-accent">gram</span>
         </span>
       )}
     </Link>

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { ArrowLeft, Check } from "lucide-react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { RemoteImage } from "@/components/RemoteImage";
@@ -26,15 +27,24 @@ function Inbox() {
   const threadParam = useSearchParams().get("thread");
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [activeId, setActiveId] = useState<string | null>(threadParam);
+  const [mobileChatOpen, setMobileChatOpen] = useState(Boolean(threadParam));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const [unsentMessages, setUnsentMessages] = useState<
+    { id: string; text: string; createdAt: string }[]
+  >([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [pending, setPending] = useState<"clear" | ChatMessage | null>(null);
   const [busy, setBusy] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevActiveIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (threadParam) setActiveId(threadParam);
+    if (threadParam) {
+      setActiveId(threadParam);
+      setMobileChatOpen(true);
+    }
   }, [threadParam]);
 
   useEffect(() => {
@@ -70,16 +80,67 @@ function Inbox() {
     if (related.length) void markAllNotificationsRead(related);
   }, [activeId, items]);
 
+  useEffect(() => {
+    setUnsentMessages([]);
+  }, [activeId]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    setUnsentMessages((current) =>
+      current.filter(
+        (unsent) =>
+          !messages.some(
+            (message) =>
+              message.fromUid === user.uid &&
+              message.text === unsent.text &&
+              new Date(message.createdAt).getTime() >=
+                new Date(unsent.createdAt).getTime() - 2000,
+          ),
+      ),
+    );
+  }, [messages, user?.uid]);
+
   const active = useMemo(
     () => threads.find((thread) => thread.id === activeId) || null,
     [threads, activeId],
   );
 
-  async function onSend(event: FormEvent) {
+  const displayMessages = useMemo((): ChatMessage[] => {
+    if (!active || !user) return messages;
+    const from: "buyer" | "seller" =
+      user.uid === active.sellerId ? "seller" : "buyer";
+    const optimistic = unsentMessages.map((item) => ({
+      id: item.id,
+      threadId: active.id,
+      fromUid: user.uid,
+      from,
+      text: item.text,
+      createdAt: item.createdAt,
+      clientPending: true,
+    }));
+    return [...messages, ...optimistic];
+  }, [messages, unsentMessages, active, user]);
+
+  const lastMessageId = displayMessages.at(-1)?.id ?? "";
+
+  useEffect(() => {
+    if (!activeId || !displayMessages.length) return;
+    const behavior =
+      prevActiveIdRef.current === activeId ? "smooth" : "auto";
+    prevActiveIdRef.current = activeId;
+    messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+  }, [activeId, lastMessageId, displayMessages.length]);
+
+  function onSend(event: FormEvent) {
     event.preventDefault();
     if (!active || !user || !draft.trim()) return;
-    await sendMessage(active, user, draft.trim());
+    const text = draft.trim();
     setDraft("");
+    setUnsentMessages((items) => [
+      ...items,
+      { id: `pending-${Date.now()}`, text, createdAt: new Date().toISOString() },
+    ]);
+    void sendMessage(active, user, text);
   }
 
   async function saveEdit() {
@@ -98,6 +159,7 @@ function Inbox() {
         const id = active.id;
         await clearThread(active);
         setActiveId((current) => (current === id ? null : current));
+        setMobileChatOpen(false);
       } else {
         await deleteMessage(active, pending, messages);
       }
@@ -122,26 +184,31 @@ function Inbox() {
   }
 
   return (
-    <div className="grid min-h-[70vh] overflow-hidden rounded-[28px] bg-paper shadow-[0_0_0_1px_var(--color-line)] lg:grid-cols-[320px_1fr]">
-      <aside className="border-b border-line lg:border-b-0 lg:border-r">
-        <div className="p-5">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] bg-paper shadow-[0_0_0_1px_var(--color-line)] lg:grid lg:grid-cols-[320px_1fr]">
+      <aside
+        className={`min-h-0 flex-col border-line lg:flex lg:border-r ${
+          mobileChatOpen ? "hidden lg:flex" : "flex flex-1"
+        }`}
+      >
+        <div className="shrink-0 p-5">
           <h1 className="font-display text-2xl">Inbox</h1>
           <p className="text-sm text-muted">Chat, edit, or clear a conversation.</p>
         </div>
-        <ul>
+        <ul className="scroll-soft min-h-0 flex-1 overflow-y-auto pb-2">
           {threads.map((thread) => (
             <li key={thread.id}>
               <button
                 type="button"
-                onClick={() => setActiveId(thread.id)}
+                onClick={() => {
+                  setActiveId(thread.id);
+                  setMobileChatOpen(true);
+                }}
                 className={`flex w-full items-center gap-3 px-5 py-3 text-left ${
                   thread.id === activeId ? "bg-canvas" : ""
                 }`}
               >
                 <span className="relative h-12 w-12 overflow-hidden rounded-2xl bg-line">
-                  {thread.listingPhoto && (
-                    <RemoteImage src={thread.listingPhoto} alt="" className="object-cover" />
-                  )}
+                  <RemoteImage src={thread.listingPhoto || ""} alt="" className="object-cover" />
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">
@@ -154,19 +221,38 @@ function Inbox() {
               </button>
             </li>
           ))}
+          {!threads.length && (
+            <li className="px-5 py-8 text-sm text-muted">
+              No chats yet. Open an ad and tap Chat.
+            </li>
+          )}
         </ul>
       </aside>
-      <section className="flex min-h-[420px] flex-col">
+      <section
+        className={`min-h-0 flex-col overflow-hidden ${
+          mobileChatOpen ? "flex flex-1" : "hidden lg:flex lg:flex-1"
+        }`}
+      >
         {active ? (
           <>
-            <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
-              <div className="min-w-0">
-                <Link href={`/listing/${active.listingId}`} className="font-medium">
-                  {active.listingTitle}
-                </Link>
-                <p className="text-xs text-muted">
-                  {active.buyerName} · {active.sellerName}
-                </p>
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-4 py-4 sm:px-5">
+              <div className="flex min-w-0 items-start gap-2">
+                <button
+                  type="button"
+                  aria-label="Back to conversations"
+                  className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-canvas lg:hidden"
+                  onClick={() => setMobileChatOpen(false)}
+                >
+                  <ArrowLeft className="size-4" />
+                </button>
+                <div className="min-w-0">
+                  <Link href={`/listing/${active.listingId}`} className="font-medium">
+                    {active.listingTitle}
+                  </Link>
+                  <p className="text-xs text-muted">
+                    {active.buyerName} · {active.sellerName}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -176,12 +262,13 @@ function Inbox() {
                 Clear chat
               </button>
             </div>
-            <div className="flex-1 space-y-3 overflow-y-auto p-5">
-              {messages.map((message) => {
+            <div className="scroll-soft min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
+              {displayMessages.map((message) => {
                 const mine =
                   message.fromUid === user.uid ||
                   (message.from === "seller" && user.uid === active.sellerId);
                 const editing = editingId === message.id;
+                const isPending = message.clientPending;
                 return (
                   <div
                     key={message.id}
@@ -221,14 +308,23 @@ function Inbox() {
                       ) : (
                         <>
                           <p>{message.text}</p>
-                          <p className={`mt-1 text-[10px] ${mine ? "text-paper/60" : "text-muted"}`}>
-                            {timeAgo(message.createdAt)}
-                            {message.editedAt ? " · Edited" : ""}
+                          <p
+                            className={`mt-1 flex items-center gap-1 text-[10px] ${
+                              mine ? "text-paper/60" : "text-muted"
+                            }`}
+                          >
+                            <span>
+                              {isPending ? "Sending" : timeAgo(message.createdAt)}
+                              {message.editedAt ? " · Edited" : ""}
+                            </span>
+                            {mine && !isPending ? (
+                              <Check className="size-3 shrink-0" aria-label="Sent" />
+                            ) : null}
                           </p>
                         </>
                       )}
                     </div>
-                    {mine && !editing && (
+                    {mine && !editing && !isPending && (
                       <div className="mt-1 flex justify-end gap-3 px-1 text-[11px] text-muted">
                         <button
                           type="button"
@@ -247,8 +343,12 @@ function Inbox() {
                   </div>
                 );
               })}
+              <div ref={messagesEndRef} aria-hidden />
             </div>
-            <form onSubmit={(event) => void onSend(event)} className="flex gap-2 border-t border-line p-4">
+            <form
+              onSubmit={(event) => void onSend(event)}
+              className="flex shrink-0 gap-2 border-t border-line p-4"
+            >
               <input
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}

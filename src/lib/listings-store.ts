@@ -71,6 +71,15 @@ function toListing(id: string, data: Record<string, unknown>, sellerId?: string)
     regionId: String(data.regionId || ""),
     city: String(data.city || ""),
     photoUrls: Array.isArray(data.photoUrls) ? (data.photoUrls as string[]) : [],
+    videoUrl: data.videoUrl ? String(data.videoUrl) : null,
+    attributes:
+      data.attributes && typeof data.attributes === "object"
+        ? Object.fromEntries(
+            Object.entries(data.attributes as Record<string, unknown>)
+              .filter(([, val]) => typeof val === "string" && val)
+              .map(([key, val]) => [key, String(val)]),
+          )
+        : undefined,
     sellerId: String(data.sellerId || seller.id || sellerId || ""),
     seller,
     status: (data.status as ListingStatus) || "pending",
@@ -80,6 +89,9 @@ function toListing(id: string, data: Record<string, unknown>, sellerId?: string)
     publishedAt: data.publishedAt ? String(data.publishedAt) : null,
     embedding: Array.isArray(data.embedding) ? (data.embedding as number[]) : undefined,
     embeddingSource: data.embeddingSource ? String(data.embeddingSource) : undefined,
+    viewCount: typeof data.viewCount === "number" ? data.viewCount : 0,
+    callInterestCount:
+      typeof data.callInterestCount === "number" ? data.callInterestCount : 0,
   };
 }
 
@@ -96,6 +108,8 @@ function toDoc(listing: Listing) {
     regionId: listing.regionId,
     city: listing.city,
     photoUrls: listing.photoUrls,
+    videoUrl: listing.videoUrl || null,
+    attributes: listing.attributes || null,
     sellerId: sellerIdOf(listing),
     seller: listing.seller,
     status: listing.status,
@@ -105,6 +119,8 @@ function toDoc(listing: Listing) {
     publishedAt: listing.publishedAt,
     embedding: listing.embedding || null,
     embeddingSource: listing.embeddingSource || null,
+    viewCount: listing.viewCount ?? 0,
+    callInterestCount: listing.callInterestCount ?? 0,
     updatedAt: serverTimestamp(),
   };
 }

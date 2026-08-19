@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     webpush.setVapidDetails(
-      "mailto:hello@sellersgram.app",
+      "mailto:hello@vendorsgram.app",
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string,
       process.env.VAPID_PRIVATE_KEY as string,
     );
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     const payload = JSON.stringify({
-      title: body.title || "Sellers Gram",
+      title: body.title || "Vendors Gram",
       body: body.body || "",
       href: body.href || "/",
       icon: "/icon-192.png",

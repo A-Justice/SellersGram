@@ -78,7 +78,15 @@ function listingText(listing: Listing) {
       .filter(Boolean)
       .join(" ")
       .toLowerCase(),
-    extra: `${listing.condition} ${listing.seller.name}`.toLowerCase(),
+    extra: [
+      listing.condition,
+      listing.status,
+      listing.seller.name,
+      listing.attributes ? Object.values(listing.attributes).join(" ") : "",
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase(),
   };
 }
 

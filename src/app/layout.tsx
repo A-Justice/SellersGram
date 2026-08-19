@@ -15,16 +15,16 @@ const syne = Syne({
 
 export const metadata: Metadata = {
   title: {
-    default: "Sellers Gram — Buy and sell in Ghana",
-    template: "%s · Sellers Gram",
+    default: "Vendors Gram — Buy and sell in Ghana",
+    template: "%s · Vendors Gram",
   },
   description:
     "Post an ad, browse listings, and chat or call the seller. Classifieds for Ghana.",
-  applicationName: "Sellers Gram",
+  applicationName: "Vendors Gram",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Sellers Gram",
+    title: "Vendors Gram",
     statusBarStyle: "default",
   },
   icons: {

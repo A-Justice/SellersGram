@@ -39,7 +39,7 @@ export function InstallAppCard() {
     <div className="rounded-[28px] bg-paper p-6 shadow-[0_0_0_1px_var(--color-line)]">
       <h2 className="font-display text-2xl tracking-tight">Install the app</h2>
       <p className="mt-2 text-sm text-muted">
-        Add Sellers Gram to your home screen for a faster, full-screen experience
+        Add Vendors Gram to your home screen for a faster, full-screen experience
         and device alerts.
       </p>
       {installEvent ? (

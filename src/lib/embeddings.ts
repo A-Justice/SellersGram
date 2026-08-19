@@ -7,7 +7,14 @@ export type EmbedInputType = "search_document" | "search_query";
 export function listingEmbedText(
   listing: Pick<
     Listing,
-    "title" | "description" | "city" | "categoryId" | "subcategoryId" | "regionId" | "condition"
+    | "title"
+    | "description"
+    | "city"
+    | "categoryId"
+    | "subcategoryId"
+    | "regionId"
+    | "condition"
+    | "attributes"
   >,
 ) {
   const category = categoryById(listing.categoryId);
@@ -15,6 +22,9 @@ export function listingEmbedText(
     (item) => item.id === listing.subcategoryId,
   );
   const region = regionById(listing.regionId);
+  const attributeText = listing.attributes
+    ? Object.values(listing.attributes).filter(Boolean).join(". ")
+    : "";
   return [
     listing.title,
     listing.description,
@@ -24,6 +34,7 @@ export function listingEmbedText(
     listing.condition,
     listing.city,
     region?.name,
+    attributeText,
   ]
     .filter(Boolean)
     .join(". ");

@@ -1,22 +1,53 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { Select } from "@/components/Select";
 import { REGIONS } from "@/lib/regions";
 
 export function SearchBar({
   size = "lg",
   defaultQuery = "",
   defaultRegion = "",
+  query: controlledQuery,
+  region: controlledRegion,
+  onQueryChange,
+  onRegionChange,
+  autoFocus = false,
+  onSearched,
 }: {
   size?: "lg" | "sm";
   defaultQuery?: string;
   defaultRegion?: string;
+  query?: string;
+  region?: string;
+  onQueryChange?: (value: string) => void;
+  onRegionChange?: (value: string) => void;
+  autoFocus?: boolean;
+  onSearched?: () => void;
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState(defaultQuery);
-  const [region, setRegion] = useState(defaultRegion);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [localQuery, setLocalQuery] = useState(defaultQuery);
+  const [localRegion, setLocalRegion] = useState(defaultRegion);
+  const query = controlledQuery ?? localQuery;
+  const region = controlledRegion ?? localRegion;
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    inputRef.current?.focus();
+  }, [autoFocus]);
+
+  function setQuery(value: string) {
+    if (onQueryChange) onQueryChange(value);
+    else setLocalQuery(value);
+  }
+
+  function setRegion(value: string) {
+    if (onRegionChange) onRegionChange(value);
+    else setLocalRegion(value);
+  }
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -24,6 +55,7 @@ export function SearchBar({
     if (query.trim()) next.set("q", query.trim());
     if (region) next.set("region", region);
     router.push(next.toString() ? `/search?${next}` : "/search");
+    onSearched?.();
   }
 
   const large = size === "lg";
@@ -40,6 +72,7 @@ export function SearchBar({
       <div className="flex min-w-0 flex-1 items-center gap-3 px-4">
         <Search className="size-5 shrink-0 text-muted" />
         <input
+          ref={inputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="What are you looking for?"
@@ -47,18 +80,18 @@ export function SearchBar({
         />
       </div>
       <div className="hidden h-8 w-px bg-line sm:block" />
-      <select
-        value={region}
-        onChange={(event) => setRegion(event.target.value)}
-        className="hidden max-w-[180px] bg-transparent px-3 text-sm text-ink outline-none sm:block"
-      >
-        <option value="">All Ghana</option>
-        {REGIONS.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name}
-          </option>
-        ))}
-      </select>
+      <div className="hidden sm:block">
+        <Select
+          variant="inline"
+          value={region}
+          onChange={setRegion}
+          placeholder="All Ghana"
+          options={[
+            { value: "", label: "All Ghana" },
+            ...REGIONS.map((item) => ({ value: item.id, label: item.name })),
+          ]}
+        />
+      </div>
       <button
         type="submit"
         className={`shrink-0 bg-ink font-medium text-paper transition hover:bg-accent ${

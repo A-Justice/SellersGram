@@ -32,6 +32,8 @@ export type Listing = {
   regionId: string;
   city: string;
   photoUrls: string[];
+  videoUrl?: string | null;
+  attributes?: Record<string, string>;
   sellerId?: string;
   seller: Seller;
   status: ListingStatus;
@@ -41,6 +43,19 @@ export type Listing = {
   publishedAt: string | null;
   embedding?: number[];
   embeddingSource?: string;
+  viewCount?: number;
+  callInterestCount?: number;
+};
+
+export type UserInterest = {
+  listingId: string;
+  sellerId: string;
+  categoryId: string;
+  regionId: string;
+  viewedAt?: string;
+  callRevealedAt?: string;
+  callInterest?: boolean;
+  lastSeenAt?: string;
 };
 
 export type BoostPackage = {
@@ -71,6 +86,7 @@ export type ChatMessage = {
   text: string;
   createdAt: string;
   editedAt?: string;
+  clientPending?: boolean;
 };
 
 export type Report = {

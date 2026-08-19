@@ -81,3 +81,14 @@ env:
     value: "cohere_em8c92Zd8zLWN2PCWgSAONIZSfGnLNOlnLsXEhCp2Ffckx"
     availability:
       - RUNTIME
+
+  - variable: PAYSTACK_SECRET_KEY
+    value: ""
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    value: ""
+    availability:
+      - BUILD
+      - RUNTIME

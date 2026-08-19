@@ -9,7 +9,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
-  let payload = { title: "Sellers Gram", body: "", href: "/" };
+  let payload = { title: "Vendors Gram", body: "", href: "/" };
   try {
     payload = { ...payload, ...event.data.json() };
   } catch {
@@ -25,7 +25,7 @@ self.addEventListener("push", (event) => {
       const visible = windows.some((client) => client.visibilityState === "visible");
       if (visible) return;
 
-      await self.registration.showNotification(payload.title || "Sellers Gram", {
+      await self.registration.showNotification(payload.title || "Vendors Gram", {
         body: payload.body || "",
         icon: "/icon-192.png",
         badge: "/badge-96.png",

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Sellers Gram",
-    short_name: "Sellers Gram",
+    name: "Vendors Gram",
+    short_name: "Vendors Gram",
     description: "Post an ad, browse listings, and chat or call the seller. Classifieds for Ghana.",
     start_url: "/",
     scope: "/",

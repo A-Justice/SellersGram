@@ -3,6 +3,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
@@ -50,6 +51,20 @@ export async function markNotificationRead(id: string) {
 
 export async function markAllNotificationsRead(items: AppNotification[]) {
   await Promise.all(items.filter((item) => !item.read).map((item) => markNotificationRead(item.id)));
+}
+
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+export async function purgeOldReadNotifications(items: AppNotification[]) {
+  if (!db) return 0;
+  const cutoff = Date.now() - ONE_WEEK_MS;
+  const stale = items.filter(
+    (item) => item.read && new Date(item.createdAt).getTime() < cutoff,
+  );
+  await Promise.all(
+    stale.map((item) => deleteDoc(doc(db!, "notifications", item.id))),
+  );
+  return stale.length;
 }
 
 export async function notifyUser(input: {

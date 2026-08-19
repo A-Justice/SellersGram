@@ -2,14 +2,19 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { MessageCircle, Phone, Shield } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { MessageCircle, Shield } from "lucide-react";
 import { DeleteAdButton } from "@/components/DeleteAdButton";
+import { ListingAttributes } from "@/components/ListingAttributes";
+import { ListingEngagementStats } from "@/components/ListingEngagementStats";
 import { RemoteImage } from "@/components/RemoteImage";
 import { ListingGrid } from "@/components/ListingGrid";
+import { ListingVideo } from "@/components/ListingVideo";
+import { SellerPhoneReveal } from "@/components/SellerPhoneReveal";
 import { TopBadge } from "@/components/TopBadge";
 import { useAuth } from "@/context/AuthContext";
 import { categoryById } from "@/lib/categories";
+import { trackListingEngagement } from "@/lib/engagement-store";
 import { startThread } from "@/lib/chat-store";
 import { boostDaysLeft, formatGhs, isBoosted, timeAgo } from "@/lib/format";
 import { regionById } from "@/lib/regions";
@@ -38,6 +43,27 @@ export default function ListingPage() {
     [listings, listing],
   );
 
+  const isMine = Boolean(
+    user &&
+      listing &&
+      (listing.sellerId === user.uid || listing.seller.id === user.uid),
+  );
+  const sellerId = listing?.sellerId || listing?.seller.id || "";
+
+  useEffect(() => {
+    if (!listing || isMine) return;
+    const key = `vg-view-${listing.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    void trackListingEngagement({
+      listingId: listing.id,
+      sellerId,
+      categoryId: listing.categoryId,
+      regionId: listing.regionId,
+      type: "view",
+    });
+  }, [listing, isMine, sellerId]);
+
   if (ready && !listing) {
     return (
       <div className="py-20 text-center">
@@ -54,10 +80,6 @@ export default function ListingPage() {
   const top = isBoosted(listing);
   const category = categoryById(listing.categoryId);
   const region = regionById(listing.regionId);
-  const isMine = Boolean(
-    user && (listing.sellerId === user.uid || listing.seller.id === user.uid),
-  );
-  const canDelete = isMine || user?.role === "admin";
 
   async function chat() {
     if (!user) {
@@ -74,15 +96,13 @@ export default function ListingPage() {
     <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
       <div>
         <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] bg-paper sm:aspect-[5/4]">
-          {listing.photoUrls[active] && (
-            <RemoteImage
-              src={listing.photoUrls[active]}
-              alt={listing.title}
-              sizes="(max-width: 1024px) 100vw, 60vw"
-              priority
-              className="object-cover"
-            />
-          )}
+          <RemoteImage
+            src={listing.photoUrls[active] || ""}
+            alt={listing.title}
+            sizes="(max-width: 1024px) 100vw, 60vw"
+            priority
+            className="object-cover"
+          />
         </div>
         {listing.photoUrls.length > 1 && (
           <div className="mt-3 flex gap-2">
@@ -100,6 +120,11 @@ export default function ListingPage() {
             ))}
           </div>
         )}
+        {listing.videoUrl ? (
+          <div className="mt-4">
+            <ListingVideo url={listing.videoUrl} />
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-6">
@@ -129,9 +154,16 @@ export default function ListingPage() {
             {timeAgo(listing.publishedAt || listing.createdAt)}
             {top ? ` · Top for ${boostDaysLeft(listing)} more days` : ""}
           </p>
-          {canDelete && (
+          {isMine && (
+            <ListingEngagementStats
+              viewCount={listing.viewCount}
+              callInterestCount={listing.callInterestCount}
+              className="mt-2"
+            />
+          )}
+          {isMine && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {isMine && listing.status === "live" && (
+              {listing.status === "live" && (
                 <Link
                   href={`/boost/${listing.id}`}
                   className="inline-flex h-10 items-center rounded-full bg-canvas px-4 text-sm"
@@ -142,9 +174,7 @@ export default function ListingPage() {
               <DeleteAdButton
                 listing={listing}
                 className="inline-flex h-10 items-center rounded-full bg-canvas px-4 text-sm text-red-700"
-                afterDelete={() =>
-                  router.push(isMine ? "/my-ads" : "/admin/listings")
-                }
+                afterDelete={() => router.push("/my-ads")}
               />
             </div>
           )}
@@ -173,17 +203,17 @@ export default function ListingPage() {
               </p>
             ) : (
               <>
-                <a
-                  href={`tel:${listing.seller.phone}`}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink text-sm font-medium text-paper"
-                >
-                  <Phone className="size-4" />
-                  Call
-                </a>
+                <SellerPhoneReveal
+                  phone={listing.seller.phone}
+                  listingId={listing.id}
+                  sellerId={sellerId}
+                  categoryId={listing.categoryId}
+                  regionId={listing.regionId}
+                />
                 <button
                   type="button"
                   onClick={chat}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-paper"
+                  className="col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-paper"
                 >
                   <MessageCircle className="size-4" />
                   Chat
@@ -205,6 +235,11 @@ export default function ListingPage() {
 
         <div>
           <h2 className="font-display text-xl">Details</h2>
+          <ListingAttributes
+            categoryId={listing.categoryId}
+            subcategoryId={listing.subcategoryId}
+            attributes={listing.attributes}
+          />
           <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink/80">
             {listing.description}
           </p>
