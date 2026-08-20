@@ -58,9 +58,17 @@ function MyAds() {
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
         <div className="mx-auto max-w-3xl space-y-6 px-4 lg:px-6">
           {posted && (
-            <p className="rounded-2xl bg-accent/10 px-4 py-3 text-sm text-accent-dark">
-              Sent for review. You will see it live after an admin approves it.
-            </p>
+            <div className="space-y-3 rounded-[24px] bg-accent/10 px-4 py-4 shadow-[0_0_0_1px_var(--color-line)]">
+              <p className="text-sm text-accent-dark">
+                Sent for review. You’ll see it live after an admin approves it.
+              </p>
+              <Link
+                href="/sell"
+                className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-medium text-paper"
+              >
+                Post another ad
+              </Link>
+            </div>
           )}
           {mine.length > 0 && (
             <label className="relative block">

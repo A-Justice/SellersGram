@@ -94,8 +94,10 @@ export default function SellPage() {
     draft?.attributes ?? {},
   );
   const [submitting, setSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<"idle" | "uploading" | "saving">("idle");
   const [submitError, setSubmitError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [postedId, setPostedId] = useState<string | null>(null);
 
   const profilePhone = (user?.phone || "").trim();
   const hasProfilePhone = Boolean(profilePhone);
@@ -249,9 +251,11 @@ export default function SellPage() {
     }
 
     setSubmitting(true);
+    setSubmitPhase("uploading");
     setSubmitError("");
     try {
       const photoUrls = await uploadListingPhotos(photoFiles);
+      setSubmitPhase("saving");
       const listing = await createListing({
         title: title.trim(),
         description: description.trim(),
@@ -279,12 +283,64 @@ export default function SellPage() {
         },
       });
       clearDraft();
-      router.push(`/my-ads?posted=${listing.id}`);
+      setPostedId(listing.id);
+      setPhotoFiles([]);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Could not submit ad.");
     } finally {
       setSubmitting(false);
+      setSubmitPhase("idle");
     }
+  }
+
+  function startAnother() {
+    setPostedId(null);
+    setStep(0);
+    setPhotoFiles([]);
+    setTitle("");
+    setDescription("");
+    setCategoryId("phones");
+    setSubcategoryId("mobile-phones");
+    setCondition("used");
+    setPrice("");
+    setNegotiable(true);
+    setContactForPrice(false);
+    setRegionId("greater-accra");
+    setCity("Accra");
+    setVideoUrl("");
+    setAttributes({});
+    setFieldErrors({});
+    setSubmitError("");
+    clearDraft();
+  }
+
+  if (postedId) {
+    return (
+      <div className="mx-auto flex h-full max-w-xl flex-col justify-center px-4 py-10 lg:px-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          Ad submitted
+        </p>
+        <h1 className="mt-2 font-display text-4xl tracking-tight">Sent for review</h1>
+        <p className="mt-3 text-sm text-muted">
+          Thanks — your ad is with our team. You’ll see it live after it’s approved.
+        </p>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={startAnother}
+            className="h-12 flex-1 rounded-full bg-ink text-sm font-medium text-paper"
+          >
+            Post another ad
+          </button>
+          <Link
+            href={`/my-ads?posted=${postedId}`}
+            className="inline-flex h-12 flex-1 items-center justify-center rounded-full bg-paper text-sm font-medium shadow-[0_0_0_1px_var(--color-line)]"
+          >
+            View my ads
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -615,11 +671,13 @@ export default function SellPage() {
               disabled={submitting}
               className="h-12 flex-1 rounded-full bg-ink text-paper disabled:opacity-40"
             >
-              {step === 3
-                ? submitting
-                  ? "Submitting…"
-                  : "Submit for review"
-                : "Continue"}
+            {step === 3
+              ? submitting
+                ? submitPhase === "uploading"
+                  ? "Uploading photos…"
+                  : "Saving ad…"
+                : "Submit for review"
+              : "Continue"}
             </button>
           </div>
         </div>

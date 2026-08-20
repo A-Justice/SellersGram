@@ -99,25 +99,28 @@ function toDoc(listing: Listing) {
   return {
     title: listing.title,
     description: listing.description,
-    priceGhs: listing.priceGhs,
-    negotiable: listing.negotiable,
-    contactForPrice: listing.contactForPrice,
+    priceGhs: listing.priceGhs ?? null,
+    negotiable: Boolean(listing.negotiable),
+    contactForPrice: Boolean(listing.contactForPrice),
     categoryId: listing.categoryId,
     subcategoryId: listing.subcategoryId,
     condition: listing.condition,
     regionId: listing.regionId,
     city: listing.city,
-    photoUrls: listing.photoUrls,
+    photoUrls: listing.photoUrls || [],
     videoUrl: listing.videoUrl || null,
-    attributes: listing.attributes || null,
+    attributes:
+      listing.attributes && Object.keys(listing.attributes).length
+        ? listing.attributes
+        : null,
     sellerId: sellerIdOf(listing),
     seller: listing.seller,
     status: listing.status,
     rejectReason: listing.rejectReason || null,
-    boostedUntil: listing.boostedUntil,
+    boostedUntil: listing.boostedUntil ?? null,
     createdAt: listing.createdAt,
-    publishedAt: listing.publishedAt,
-    embedding: listing.embedding || null,
+    publishedAt: listing.publishedAt ?? null,
+    embedding: listing.embedding?.length ? listing.embedding : null,
     embeddingSource: listing.embeddingSource || null,
     viewCount: listing.viewCount ?? 0,
     callInterestCount: listing.callInterestCount ?? 0,
@@ -223,9 +226,19 @@ export function subscribeListings(onChange: (listings: Listing[]) => void): Unsu
 async function withEmbedding(listing: Listing): Promise<Listing> {
   const source = listingEmbedText(listing);
   if (listing.embedding?.length && listing.embeddingSource === source) return listing;
-  const [embedding] = await embedDocuments([source]);
-  if (!embedding?.length) return listing;
-  return { ...listing, embedding, embeddingSource: source };
+  try {
+    const result = await Promise.race([
+      embedDocuments([source]),
+      new Promise<number[][]>((resolve) => {
+        setTimeout(() => resolve([]), 8000);
+      }),
+    ]);
+    const embedding = result[0];
+    if (!embedding?.length) return listing;
+    return { ...listing, embedding, embeddingSource: source };
+  } catch {
+    return listing;
+  }
 }
 
 export async function upsertListing(listing: Listing) {

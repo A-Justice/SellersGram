@@ -35,11 +35,26 @@ export async function POST(request: Request) {
       if (file.size > MAX_BYTES) {
         return NextResponse.json({ error: `${file.name} is larger than 8MB.` }, { status: 400 });
       }
-      if (!file.type.startsWith("image/")) {
+      const type = file.type || "";
+      const nameOk = /\.(jpe?g|png|webp|gif|heic|heif|bmp|avif)$/i.test(file.name);
+      if (type && !type.startsWith("image/") && !nameOk) {
         return NextResponse.json({ error: `${file.name} is not an image.` }, { status: 400 });
       }
-      const bytes = Buffer.from(await file.arrayBuffer());
-      urls.push(await uploadUserImage(user.uid, bytes));
+      if (!type && !nameOk) {
+        return NextResponse.json({ error: `${file.name} is not an image.` }, { status: 400 });
+      }
+      try {
+        const bytes = Buffer.from(await file.arrayBuffer());
+        urls.push(await uploadUserImage(user.uid, bytes));
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "processing failed";
+        return NextResponse.json(
+          {
+            error: `Could not process ${file.name}. Try a JPG or PNG. (${detail})`,
+          },
+          { status: 400 },
+        );
+      }
     }
 
     return NextResponse.json({ urls });

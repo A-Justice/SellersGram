@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
+import { compressImageForUpload, isLikelyImageFile } from "@/lib/image-compress";
 
 const MAX_PHOTOS = 6;
 const MAX_BYTES = 8 * 1024 * 1024;
+const UPLOAD_TIMEOUT_MS = 90_000;
 
 export function PhotoPicker({
   files,
@@ -29,9 +31,9 @@ export function PhotoPicker({
     if (!selected.length) return;
     setError("");
 
-    const images = selected.filter((file) => file.type.startsWith("image/"));
+    const images = selected.filter((file) => isLikelyImageFile(file));
     if (!images.length) {
-      setError("Choose at least one image.");
+      setError("Choose at least one image (JPG or PNG works best).");
       return;
     }
     if (images.length !== selected.length) {
@@ -88,23 +90,55 @@ export function PhotoPicker({
   );
 }
 
+async function readUploadError(response: Response) {
+  const raw = await response.text();
+  try {
+    const data = JSON.parse(raw) as { error?: string };
+    if (data.error) return data.error;
+  } catch {
+    // non-JSON (gateway / HTML)
+  }
+  if (response.status === 413) return "Photos are too large. Try fewer or smaller images.";
+  if (response.status >= 500) return "Photo upload failed on the server. Please try again.";
+  return raw.slice(0, 160) || "Upload failed";
+}
+
 /** Upload local files to Azure; call only when posting the ad. */
 export async function uploadListingPhotos(files: File[]): Promise<string[]> {
   if (!files.length) return [];
   const token = await auth?.currentUser?.getIdToken();
   if (!token) throw new Error("Sign in to upload photos.");
 
-  const body = new FormData();
+  const prepared: File[] = [];
   for (const file of files.slice(0, MAX_PHOTOS)) {
+    prepared.push(await compressImageForUpload(file));
+  }
+
+  const body = new FormData();
+  for (const file of prepared) {
     body.append("files", file, file.name);
   }
 
-  const response = await fetch("/api/uploads", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body,
-  });
-  const data = (await response.json()) as { urls?: string[]; error?: string };
-  if (!response.ok) throw new Error(data.error || "Upload failed");
-  return (data.urls || []).slice(0, MAX_PHOTOS);
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+  try {
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(await readUploadError(response));
+    const data = (await response.json()) as { urls?: string[] };
+    const urls = (data.urls || []).slice(0, MAX_PHOTOS);
+    if (!urls.length) throw new Error("Upload returned no photos. Please try again.");
+    return urls;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("Photo upload timed out. Check your connection and try again.");
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
