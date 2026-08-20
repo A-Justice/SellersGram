@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "firestore:copy-to-test": "node scripts/copy-firestore-default-to-test.mjs"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.33.0",

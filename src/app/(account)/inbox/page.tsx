@@ -5,6 +5,7 @@ import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { AccountPageTitle } from "@/components/AccountShell";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { RemoteImage } from "@/components/RemoteImage";
 import { useAuth } from "@/context/AuthContext";
@@ -190,9 +191,14 @@ function Inbox() {
           mobileChatOpen ? "hidden lg:flex" : "flex flex-1"
         }`}
       >
-        <div className="shrink-0 p-5">
-          <h1 className="font-display text-2xl">Inbox</h1>
-          <p className="text-sm text-muted">Chat, edit, or clear a conversation.</p>
+        <div className="shrink-0 border-b border-line bg-paper p-5">
+          <AccountPageTitle
+            title="Inbox"
+            titleClassName="font-display text-2xl tracking-tight"
+            subtitle={
+              <p className="text-sm text-muted">Chat, edit, or clear a conversation.</p>
+            }
+          />
         </div>
         <ul className="scroll-soft min-h-0 flex-1 overflow-y-auto pb-2">
           {threads.map((thread) => (
@@ -235,7 +241,7 @@ function Inbox() {
       >
         {active ? (
           <>
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-4 py-4 sm:px-5">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
               <div className="flex min-w-0 items-start gap-2">
                 <button
                   type="button"
@@ -262,7 +268,7 @@ function Inbox() {
                 Clear chat
               </button>
             </div>
-            <div className="scroll-soft min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
+            <div className="scroll-soft min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-5 sm:px-6">
               {displayMessages.map((message) => {
                 const mine =
                   message.fromUid === user.uid ||
@@ -347,7 +353,7 @@ function Inbox() {
             </div>
             <form
               onSubmit={(event) => void onSend(event)}
-              className="flex shrink-0 gap-2 border-t border-line p-4"
+              className="flex shrink-0 gap-2 border-t border-line px-5 py-4 sm:px-6"
             >
               <input
                 value={draft}

@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { formatPhoneDisplay } from "@/lib/phone";
 
 type Method = "email" | "phone";
-type PhoneStep = "number" | "code";
+type PhoneStep = "number" | "code" | "name";
 
 function LoginForm() {
   const {
@@ -16,8 +16,12 @@ function LoginForm() {
     signInGoogle,
     startPhoneSignIn,
     confirmPhoneCode,
+    completeProfileName,
     clearPhoneSignIn,
     firebaseReady,
+    needsName,
+    user,
+    loading,
   } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
@@ -35,6 +39,13 @@ function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!loading && user && needsName) {
+      setMethod("phone");
+      setPhoneStep("name");
+    }
+  }, [loading, user, needsName]);
+
   function switchMethod(nextMethod: Method) {
     setError("");
     setMethod(nextMethod);
@@ -43,6 +54,7 @@ function LoginForm() {
       setPhoneStep("number");
       setCode("");
       setSentTo("");
+      setName("");
     }
   }
 
@@ -81,7 +93,12 @@ function LoginForm() {
     setError("");
     setBusy(true);
     try {
-      await confirmPhoneCode(code);
+      const result = await confirmPhoneCode(code);
+      if (result.needsName) {
+        setName("");
+        setPhoneStep("name");
+        return;
+      }
       router.push(next);
     } catch (err) {
       setError(authErrorMessage(err));
@@ -90,46 +107,68 @@ function LoginForm() {
     }
   }
 
+  async function onSaveName(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      await completeProfileName(name);
+      router.push(next);
+    } catch (err) {
+      setError(authErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const heading =
+    method === "phone"
+      ? phoneStep === "code"
+        ? "Enter code"
+        : phoneStep === "name"
+          ? "Almost done"
+          : "Sign in with phone"
+      : mode === "in"
+        ? "Welcome back"
+        : "Create account";
+
+  const subtitle =
+    method === "phone" && phoneStep === "code"
+      ? `We sent a 6-digit code to ${formatPhoneDisplay(sentTo) || sentTo}.`
+      : method === "phone" && phoneStep === "name"
+        ? "Tell buyers what to call you — your name or your shop name."
+        : "Browse without an account. Sign in to chat and sell.";
+
   return (
     <div className="mx-auto max-w-md py-6">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
         Account
       </p>
-      <h1 className="mt-2 font-display text-4xl tracking-tight">
-        {method === "phone"
-          ? phoneStep === "code"
-            ? "Enter code"
-            : "Sign in with phone"
-          : mode === "in"
-            ? "Welcome back"
-            : "Create account"}
-      </h1>
-      <p className="mt-2 text-sm text-muted">
-        {method === "phone" && phoneStep === "code"
-          ? `We sent a 6-digit code to ${formatPhoneDisplay(sentTo) || sentTo}.`
-          : "Browse without an account. Sign in to chat and sell."}
-      </p>
+      <h1 className="mt-2 font-display text-4xl tracking-tight">{heading}</h1>
+      <p className="mt-2 text-sm text-muted">{subtitle}</p>
 
-      <div className="mt-6 grid grid-cols-2 gap-1 rounded-full bg-paper p-1 shadow-[0_0_0_1px_var(--color-line)]">
-        <button
-          type="button"
-          onClick={() => switchMethod("email")}
-          className={`h-10 rounded-full text-sm font-medium transition ${
-            method === "email" ? "bg-ink text-paper" : "text-muted"
-          }`}
-        >
-          Email
-        </button>
-        <button
-          type="button"
-          onClick={() => switchMethod("phone")}
-          className={`h-10 rounded-full text-sm font-medium transition ${
-            method === "phone" ? "bg-ink text-paper" : "text-muted"
-          }`}
-        >
-          Phone
-        </button>
-      </div>
+      {phoneStep !== "name" ? (
+        <div className="mt-6 grid grid-cols-2 gap-1 rounded-full bg-paper p-1 shadow-[0_0_0_1px_var(--color-line)]">
+          <button
+            type="button"
+            onClick={() => switchMethod("email")}
+            className={`h-10 rounded-full text-sm font-medium transition ${
+              method === "email" ? "bg-ink text-paper" : "text-muted"
+            }`}
+          >
+            Email
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMethod("phone")}
+            className={`h-10 rounded-full text-sm font-medium transition ${
+              method === "phone" ? "bg-ink text-paper" : "text-muted"
+            }`}
+          >
+            Phone
+          </button>
+        </div>
+      ) : null}
 
       {method === "email" ? (
         <form
@@ -226,7 +265,7 @@ function LoginForm() {
             </p>
           )}
         </form>
-      ) : (
+      ) : phoneStep === "code" ? (
         <form
           onSubmit={onConfirmCode}
           className="mt-6 space-y-3 rounded-[28px] bg-paper p-6 shadow-[0_0_0_1px_var(--color-line)]"
@@ -261,6 +300,33 @@ function LoginForm() {
             className="h-12 w-full rounded-full bg-canvas disabled:opacity-40"
           >
             Use a different number
+          </button>
+        </form>
+      ) : (
+        <form
+          onSubmit={onSaveName}
+          className="mt-6 space-y-3 rounded-[28px] bg-paper p-6 shadow-[0_0_0_1px_var(--color-line)]"
+        >
+          <input
+            className="field"
+            autoComplete="name"
+            placeholder="Your name or shop name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+            minLength={2}
+            autoFocus
+          />
+          <p className="text-xs text-muted">
+            Buyers will see this on your ads and when they chat with you.
+          </p>
+          {error && <p className="text-sm text-red-700">{error}</p>}
+          <button
+            type="submit"
+            disabled={!firebaseReady || busy || name.trim().length < 2}
+            className="h-12 w-full rounded-full bg-ink text-paper disabled:opacity-40"
+          >
+            {busy ? "Saving…" : "Continue"}
           </button>
         </form>
       )}

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit, Syne } from "next/font/google";
+import { EnvBanner } from "@/components/EnvBanner";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${outfit.variable} ${syne.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-canvas text-ink">
+        <EnvBanner />
         <Providers>{children}</Providers>
       </body>
     </html>

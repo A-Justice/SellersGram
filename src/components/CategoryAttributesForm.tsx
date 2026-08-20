@@ -37,7 +37,7 @@ export function CategoryAttributesForm({
       <div>
         <p className="text-sm font-medium">Category details</p>
         <p className="mt-1 text-xs text-muted">
-          Optional — like Jiji, but nothing here is required. Skip what does not apply.
+          Optional — nothing here is required. Skip what does not apply.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
