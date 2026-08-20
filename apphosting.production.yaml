@@ -1,0 +1,13 @@
+# Production overrides (environment name in Firebase console: "production")
+# Merged on top of apphosting.yaml — values here win when both define the same variable.
+env:
+  - variable: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    secret: LIVE_PAYSTACK_PUBLIC_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: PAYSTACK_SECRET_KEY
+    secret: LIVE_PAYSTACK_SECRET_KEY
+    availability:
+      - RUNTIME

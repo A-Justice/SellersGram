@@ -73,7 +73,7 @@ env:
       - RUNTIME
 
   - variable: AZURE_STORAGE_SAS_URL
-    value: "https://icedefaultstorageaccount.blob.core.windows.net/sellers-gram?sp=racwdl&st=2026-08-18T14:44:25Z&se=2030-05-03T22:59:25Z&spr=https&sv=2026-02-06&sr=c&sig=mcda8r3iOnSMDfwePyOiA06tAZmasXu8okI4HkA9GHQ%3D"
+    secret: "AZURE_STORAGE_SAS_URL"
     availability:
       - RUNTIME
 
@@ -82,13 +82,13 @@ env:
     availability:
       - RUNTIME
 
-  - variable: PAYSTACK_SECRET_KEY
-    value: ""
-    availability:
-      - RUNTIME
-
   - variable: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
-    value: ""
+    secret: TEST_PAYSTACK_PUBLIC_KEY
     availability:
       - BUILD
+      - RUNTIME
+
+  - variable: PAYSTACK_SECRET_KEY
+    secret: TEST_PAYSTACK_SECRET_KEY
+    availability:
       - RUNTIME
