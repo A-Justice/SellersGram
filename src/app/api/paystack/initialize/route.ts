@@ -8,6 +8,27 @@ import { requireUser } from "@/lib/server/require-user";
 
 export const runtime = "nodejs";
 
+function resolveAppUrl(request: Request) {
+  const configured = publicEnv.appUrl.replace(/\/$/, "");
+  if (configured && !/localhost|127\.0\.0\.1/i.test(configured)) {
+    return configured;
+  }
+
+  const origin = request.headers.get("origin");
+  if (origin && !/localhost|127\.0\.0\.1/i.test(origin)) {
+    return origin.replace(/\/$/, "");
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost || request.headers.get("host") || "";
+  if (host && !/localhost|127\.0\.0\.1/i.test(host)) {
+    const proto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
+    return `${proto}://${host}`;
+  }
+
+  return configured || "http://localhost:3000";
+}
+
 export async function POST(request: Request) {
   try {
     if (!isPaystackConfigured()) {
@@ -47,7 +68,7 @@ export async function POST(request: Request) {
     }
 
     const reference = boostReference(listingId);
-    const callbackUrl = `${publicEnv.appUrl}/boost/${listingId}/callback`;
+    const callbackUrl = `${resolveAppUrl(request)}/boost/${listingId}/callback`;
 
     const paystack = await initializePaystackTransaction({
       amountGhs: pack.priceGhs,

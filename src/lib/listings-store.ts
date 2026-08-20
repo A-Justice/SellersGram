@@ -320,6 +320,12 @@ export async function boostListing(listings: Listing[], id: string, days: number
   await upsertListing({ ...current, boostedUntil: from.toISOString() });
 }
 
+export async function endBoost(listings: Listing[], id: string) {
+  const current = listings.find((listing) => listing.id === id);
+  if (!current) return;
+  await upsertListing({ ...current, boostedUntil: null });
+}
+
 export async function createListing(
   input: Omit<Listing, "id" | "status" | "boostedUntil" | "createdAt" | "publishedAt">,
 ) {

@@ -6,6 +6,8 @@ export const publicEnv = {
   firebaseMessagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
   firebaseAppId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
   firebaseMeasurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "",
+  /** Firestore database id. `(default)` = production; `test` = test backend. */
+  firestoreDatabase: (process.env.NEXT_PUBLIC_FIRESTORE_DATABASE || "(default)").trim() || "(default)",
   paystackPublicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
   appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "",
@@ -14,3 +16,7 @@ export const publicEnv = {
 export const isFirebaseConfigured = Boolean(
   publicEnv.firebaseApiKey && publicEnv.firebaseProjectId,
 );
+
+export function isDefaultFirestoreDatabase(databaseId = publicEnv.firestoreDatabase) {
+  return !databaseId || databaseId === "(default)";
+}

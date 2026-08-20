@@ -3,7 +3,11 @@ import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
-import { isFirebaseConfigured, publicEnv } from "./env";
+import {
+  isDefaultFirestoreDatabase,
+  isFirebaseConfigured,
+  publicEnv,
+} from "./env";
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
@@ -24,7 +28,10 @@ if (isFirebaseConfigured) {
 
   app = getApps().length ? getApp() : initializeApp(config);
   auth = getAuth(app);
-  db = getFirestore(app);
+  // Auth is project-wide (shared). Firestore is per-database for prod vs test isolation.
+  db = isDefaultFirestoreDatabase()
+    ? getFirestore(app)
+    : getFirestore(app, publicEnv.firestoreDatabase);
   storage = getStorage(app);
 
   if (typeof window !== "undefined") {

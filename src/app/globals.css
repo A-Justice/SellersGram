@@ -67,6 +67,10 @@ button {
   outline: none;
 }
 
+.field.field-icon {
+  padding-left: 2.75rem;
+}
+
 textarea.field {
   height: auto;
   padding-top: 0.75rem;

@@ -1,0 +1,37 @@
+# Test / staging overrides
+# In Firebase: App Hosting → your TEST backend → Settings → Environment name = "test"
+# Merged on top of apphosting.yaml — values here win when both define the same variable.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 20
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  # After you create the test backend, replace this with its URL
+  # (e.g. https://sellersgram--test-xxxxx.europe-west4.hosted.app or a custom domain).
+  - variable: NEXT_PUBLIC_APP_URL
+    value: "https://test.vendorsgram.com"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Named Firestore DB (create in console as "test"). Auth stays project-wide / shared.
+  - variable: NEXT_PUBLIC_FIRESTORE_DATABASE
+    value: "test"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    secret: TEST_PAYSTACK_PUBLIC_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: PAYSTACK_SECRET_KEY
+    secret: TEST_PAYSTACK_SECRET_KEY
+    availability:
+      - RUNTIME

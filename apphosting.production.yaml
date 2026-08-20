@@ -1,6 +1,19 @@
 # Production overrides (environment name in Firebase console: "production")
 # Merged on top of apphosting.yaml — values here win when both define the same variable.
 env:
+  - variable: NEXT_PUBLIC_APP_URL
+    value: "https://vendorsgram.com"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Production uses the default Firestore database (shared Auth, isolated data).
+  - variable: NEXT_PUBLIC_FIRESTORE_DATABASE
+    value: "(default)"
+    availability:
+      - BUILD
+      - RUNTIME
+
   - variable: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
     secret: LIVE_PAYSTACK_PUBLIC_KEY
     availability:

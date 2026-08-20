@@ -62,7 +62,7 @@ function MyAds() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search your ads — title, city, live, sold…"
-            className="field pl-11"
+            className="field field-icon"
           />
         </label>
       )}

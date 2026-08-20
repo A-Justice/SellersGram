@@ -56,6 +56,13 @@ env:
       - BUILD
       - RUNTIME
 
+  # Local / fallback: production data. Use "test" in .env.local to hit the test DB.
+  - variable: NEXT_PUBLIC_FIRESTORE_DATABASE
+    value: "(default)"
+    availability:
+      - BUILD
+      - RUNTIME
+
   - variable: NEXT_PUBLIC_VAPID_PUBLIC_KEY
     value: "BEgMNuyPXRyRkYoVdXtbw-JGrfmjE8_-ERAMd5Qhf8O_t4cGQ-ftfxsOrtY-JimxLHGvmfqjMMSaXXdg8uK3jdM"
     availability:

@@ -16,7 +16,13 @@ const NAV = [
 ];
 
 function navLabel(pathname: string) {
+  if (pathname.startsWith("/admin/sellers/")) return "Seller";
   return NAV.find((item) => item.href === pathname)?.label || "Admin";
+}
+
+function navActive(pathname: string, href: string) {
+  if (href === "/admin") return pathname === "/admin";
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -67,7 +73,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={`block rounded-2xl px-3 py-2.5 text-sm ${
-                  pathname === item.href ? "bg-ink text-paper" : "text-muted hover:bg-paper"
+                  navActive(pathname, item.href)
+                    ? "bg-ink text-paper"
+                    : "text-muted hover:bg-paper"
                 }`}
               >
                 {item.label}

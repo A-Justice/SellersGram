@@ -13,10 +13,13 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  RecaptchaVerifier,
   signInWithEmailAndPassword,
+  signInWithPhoneNumber,
   signInWithPopup,
   signOut as firebaseSignOut,
   updateProfile,
+  type ConfirmationResult,
   type User,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -24,6 +27,7 @@ import { auth, db } from "@/lib/firebase";
 import { isFirebaseConfigured } from "@/lib/env";
 import { seedOwnerListings } from "@/lib/listings-store";
 import { isOwnerUid } from "@/lib/owner";
+import { toE164Phone } from "@/lib/phone";
 import type { UserRole } from "@/data/types";
 
 export type SessionUser = {
@@ -41,8 +45,23 @@ type AuthContextValue = {
   signInEmail: (email: string, password: string) => Promise<void>;
   signUpEmail: (name: string, email: string, password: string) => Promise<void>;
   signInGoogle: () => Promise<void>;
+  startPhoneSignIn: (phone: string) => Promise<string>;
+  confirmPhoneCode: (code: string) => Promise<void>;
+  clearPhoneSignIn: () => void;
   signOut: () => Promise<void>;
 };
+
+const PHONE_RECAPTCHA_ID = "phone-recaptcha";
+
+let phoneConfirmation: ConfirmationResult | null = null;
+let phoneRecaptcha: RecaptchaVerifier | null = null;
+
+function clearPhoneRecaptcha() {
+  if (phoneRecaptcha) {
+    phoneRecaptcha.clear();
+    phoneRecaptcha = null;
+  }
+}
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -73,7 +92,7 @@ async function ensureProfile(firebaseUser: User): Promise<SessionUser> {
     uid: firebaseUser.uid,
     name: existing?.name || firebaseUser.displayName || "Seller",
     email: firebaseUser.email,
-    phone: existing?.phone || firebaseUser.phoneNumber || "",
+    phone: firebaseUser.phoneNumber || existing?.phone || "",
     role,
   };
 
@@ -141,10 +160,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, new GoogleAuthProvider());
   }, []);
 
+  const clearPhoneSignIn = useCallback(() => {
+    phoneConfirmation = null;
+    clearPhoneRecaptcha();
+  }, []);
+
+  const startPhoneSignIn = useCallback(async (phone: string) => {
+    if (!auth) throw new Error("Firebase is not configured yet.");
+    if (typeof window === "undefined") {
+      throw new Error("Phone sign-in only works in the browser.");
+    }
+
+    const e164 = toE164Phone(phone);
+    clearPhoneRecaptcha();
+    phoneConfirmation = null;
+
+    phoneRecaptcha = new RecaptchaVerifier(auth, PHONE_RECAPTCHA_ID, {
+      size: "invisible",
+    });
+
+    try {
+      phoneConfirmation = await signInWithPhoneNumber(auth, e164, phoneRecaptcha);
+      return e164;
+    } catch (error) {
+      clearPhoneRecaptcha();
+      phoneConfirmation = null;
+      throw error;
+    }
+  }, []);
+
+  const confirmPhoneCode = useCallback(async (code: string) => {
+    if (!phoneConfirmation) {
+      throw new Error("Request a verification code first.");
+    }
+    const trimmed = code.trim();
+    if (!/^\d{6}$/.test(trimmed)) {
+      throw new Error("Enter the 6-digit code from SMS.");
+    }
+    await phoneConfirmation.confirm(trimmed);
+    phoneConfirmation = null;
+    clearPhoneRecaptcha();
+  }, []);
+
   const signOut = useCallback(async () => {
+    clearPhoneSignIn();
     if (auth) await firebaseSignOut(auth);
     setUser(null);
-  }, []);
+  }, [clearPhoneSignIn]);
 
   const value = useMemo(
     () => ({
@@ -154,9 +216,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInEmail,
       signUpEmail,
       signInGoogle,
+      startPhoneSignIn,
+      confirmPhoneCode,
+      clearPhoneSignIn,
       signOut,
     }),
-    [user, loading, signInEmail, signUpEmail, signInGoogle, signOut],
+    [
+      user,
+      loading,
+      signInEmail,
+      signUpEmail,
+      signInGoogle,
+      startPhoneSignIn,
+      confirmPhoneCode,
+      clearPhoneSignIn,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
