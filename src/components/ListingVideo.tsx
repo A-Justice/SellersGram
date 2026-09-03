@@ -30,13 +30,13 @@ export function ListingVideo({ url }: Props) {
       href={parsed.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center justify-between gap-3 rounded-[24px] bg-paper px-5 py-4 shadow-[0_0_0_1px_var(--color-line)] transition hover:shadow-[0_0_0_1px_var(--color-ink)]"
+      className="flex min-w-0 items-center justify-between gap-3 rounded-[24px] bg-paper px-5 py-4 shadow-[0_0_0_1px_var(--color-line)] transition hover:shadow-[0_0_0_1px_var(--color-ink)]"
     >
-      <span className="flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-canvas text-accent">
+      <span className="flex min-w-0 flex-1 items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-canvas text-accent">
           <Play className="size-4 fill-current" />
         </span>
-        <span>
+        <span className="min-w-0">
           <span className="block text-sm font-medium">Watch video</span>
           <span className="block truncate text-xs text-muted">{parsed.url}</span>
         </span>

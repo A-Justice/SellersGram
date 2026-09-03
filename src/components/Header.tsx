@@ -37,7 +37,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line/80 bg-canvas/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 overflow-x-hidden border-b border-line/80 bg-canvas/85 backdrop-blur-xl">
       {showMobileSearch ? (
         <div className="mx-auto flex h-16 items-center gap-2 px-4 md:hidden">
           <button
@@ -63,7 +63,7 @@ export function Header() {
       ) : null}
 
       <div
-        className={`mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 lg:h-[4.25rem] lg:px-6 ${
+        className={`mx-auto flex h-16 max-w-6xl min-w-0 items-center gap-2 px-4 lg:h-[4.25rem] lg:gap-4 lg:px-6 ${
           showMobileSearch ? "hidden md:flex" : "flex"
         }`}
       >

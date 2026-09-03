@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <HomeSearchProvider enabled={isHome || isSearch}>
       <div className="flex min-h-full flex-col">
         <Header />
-        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-6 pb-28 lg:px-6 lg:pb-16">
+        <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col overflow-x-hidden px-4 pt-6 pb-28 lg:px-6 lg:pb-16">
           {children}
         </main>
         <BottomNav />

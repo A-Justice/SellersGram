@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function SafetyPage() {
   return (
     <article className="mx-auto max-w-2xl space-y-6">
@@ -13,6 +15,16 @@ export default function SafetyPage() {
         <li>Prefer in-app chat so you have a record.</li>
         <li>Report anything that feels off. Admin will review it.</li>
       </ul>
+      <p className="text-sm text-muted">
+        More detail:{" "}
+        <Link href="/acceptable-use" className="font-medium text-accent underline">
+          Acceptable Use Policy
+        </Link>
+        {" · "}
+        <Link href="/disputes" className="font-medium text-accent underline">
+          Disputes & reports
+        </Link>
+      </p>
     </article>
   );
 }

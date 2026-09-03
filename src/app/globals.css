@@ -29,6 +29,7 @@ body {
   background: var(--canvas);
   color: var(--ink);
   height: 100%;
+  overflow-x: clip;
 }
 
 body {

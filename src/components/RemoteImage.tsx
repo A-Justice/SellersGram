@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 function ImagePlaceholder() {
   return (
@@ -20,6 +20,10 @@ function ImagePlaceholder() {
   );
 }
 
+function isImageComplete(img: HTMLImageElement | null) {
+  return Boolean(img?.complete && img.naturalWidth > 0);
+}
+
 export function RemoteImage({
   src,
   alt,
@@ -35,6 +39,7 @@ export function RemoteImage({
 }) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const missing = !src?.trim();
   const showPlaceholder = missing || failed;
 
@@ -43,14 +48,49 @@ export function RemoteImage({
     setLoaded(false);
   }, [src]);
 
+  const syncLoaded = useCallback(() => {
+    if (isImageComplete(imgRef.current)) {
+      setLoaded(true);
+      return true;
+    }
+    return false;
+  }, []);
+
+  // Cached / instant loads often finish before onLoad is attached.
+  useLayoutEffect(() => {
+    if (showPlaceholder) return;
+    if (syncLoaded()) return;
+    const id = requestAnimationFrame(() => {
+      syncLoaded();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [src, showPlaceholder, syncLoaded]);
+
+  useEffect(() => {
+    if (showPlaceholder) return;
+    const timer = window.setTimeout(() => syncLoaded(), 2500);
+    return () => window.clearTimeout(timer);
+  }, [src, showPlaceholder, syncLoaded]);
+
+  const setImgRef = useCallback(
+    (node: HTMLImageElement | null) => {
+      imgRef.current = node;
+      if (node) syncLoaded();
+    },
+    [syncLoaded],
+  );
+
   if (showPlaceholder) {
     return <ImagePlaceholder />;
   }
 
   return (
     <>
-      {!loaded ? <div className="absolute inset-0 animate-pulse bg-line" aria-hidden /> : null}
+      {!loaded ? (
+        <div className="absolute inset-0 z-[1] animate-pulse bg-line" aria-hidden />
+      ) : null}
       <Image
+        ref={setImgRef}
         src={src}
         alt={alt}
         fill
@@ -59,9 +99,7 @@ export function RemoteImage({
         unoptimized
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
-        className={`${className} transition-opacity duration-300 ${
-          loaded ? "opacity-100" : "opacity-0"
-        }`}
+        className={className}
       />
     </>
   );

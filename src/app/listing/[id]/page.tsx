@@ -93,29 +93,29 @@ export default function ListingPage() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-      <div>
-        <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] bg-paper sm:aspect-[5/4]">
+    <div className="grid min-w-0 max-w-full gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+      <div className="min-w-0">
+        <div className="relative mx-auto aspect-[4/3] w-full max-h-[min(52vh,320px)] overflow-hidden rounded-[28px] bg-canvas sm:max-h-none sm:aspect-[5/4]">
           <RemoteImage
             src={listing.photoUrls[active] || ""}
             alt={listing.title}
-            sizes="(max-width: 1024px) 100vw, 60vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 60vw"
             priority
-            className="object-cover"
+            className="object-contain object-center"
           />
         </div>
         {listing.photoUrls.length > 1 && (
-          <div className="mt-3 flex gap-2">
+          <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
             {listing.photoUrls.map((photo, index) => (
               <button
                 key={photo}
                 type="button"
                 onClick={() => setActive(index)}
-                className={`relative h-16 w-16 overflow-hidden rounded-2xl ${
+                className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl ${
                   active === index ? "ring-2 ring-ink" : "ring-1 ring-line"
                 }`}
               >
-                <RemoteImage src={photo} alt="" className="object-cover" />
+                <RemoteImage src={photo} alt="" className="object-cover object-center" />
               </button>
             ))}
           </div>
@@ -127,15 +127,15 @@ export default function ListingPage() {
         ) : null}
       </div>
 
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <div>
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted">
+          <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted">
             {top && <TopBadge />}
             <span>{category?.name}</span>
             <span>·</span>
             <span>{listing.condition}</span>
           </div>
-          <h1 className="mt-3 font-display text-4xl leading-tight tracking-tight">
+          <h1 className="mt-3 break-words font-display text-3xl leading-tight tracking-tight sm:text-4xl">
             {listing.title}
           </h1>
           <p className="mt-3 text-2xl font-semibold">
@@ -240,14 +240,14 @@ export default function ListingPage() {
             subcategoryId={listing.subcategoryId}
             attributes={listing.attributes}
           />
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink/80">
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink/80">
             {listing.description}
           </p>
         </div>
 
-        <div className="flex items-start gap-3 rounded-[22px] bg-gold/15 p-4 text-sm">
+        <div className="flex min-w-0 items-start gap-3 rounded-[22px] bg-gold/15 p-4 text-sm">
           <Shield className="mt-0.5 size-4 shrink-0" />
-          <p>
+          <p className="min-w-0 break-words">
             Meet in public. Check the item before you pay. Do not pay in
             advance — even for delivery.{" "}
             <Link href="/safety" className="font-medium underline">
@@ -258,7 +258,7 @@ export default function ListingPage() {
       </div>
 
       {more.length > 0 && (
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           <h2 className="mb-4 font-display text-2xl">Similar ads</h2>
           <ListingGrid listings={more} />
         </div>
