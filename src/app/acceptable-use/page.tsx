@@ -93,7 +93,7 @@ const sections: { title: string; body: string[] }[] = [
   {
     title: "11. Contact",
     body: [
-      "Questions about this policy: info@vendorsgram.com",
+      "Questions about this policy: hello@vendorsgram.com",
     ],
   },
 ];

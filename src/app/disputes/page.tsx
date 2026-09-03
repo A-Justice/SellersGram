@@ -49,10 +49,10 @@ export default function DisputesPage() {
           <li>
             Email{" "}
             <a
-              href="mailto:info@vendorsgram.com"
+              href="mailto:hello@vendorsgram.com"
               className="font-medium text-accent underline"
             >
-              info@vendorsgram.com
+              hello@vendorsgram.com
             </a>{" "}
             with the listing link, usernames or phone numbers involved, and a
             short description of what happened.
@@ -89,10 +89,10 @@ export default function DisputesPage() {
           If you paid Vendors Gram via Paystack for a listing boost or other
           platform fee, contact us at{" "}
           <a
-            href="mailto:info@vendorsgram.com"
+            href="mailto:hello@vendorsgram.com"
             className="font-medium text-accent underline"
           >
-            info@vendorsgram.com
+            hello@vendorsgram.com
           </a>{" "}
           with your payment reference. Boost-related billing issues are handled
           by our support team and, where applicable, through Paystack’s dispute

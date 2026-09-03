@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { BottomNav } from "./BottomNav";
+import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { HomeSearchProvider } from "@/context/HomeSearchContext";
 
@@ -45,9 +46,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <HomeSearchProvider enabled={isHome || isSearch}>
       <div className="flex min-h-full flex-col">
         <Header />
-        <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col overflow-x-hidden px-4 pt-6 pb-28 lg:px-6 lg:pb-16">
+        <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col overflow-x-hidden px-4 pt-6 pb-6 lg:px-6">
           {children}
         </main>
+        <div className="pb-28 lg:pb-0">
+          <Footer />
+        </div>
         <BottomNav />
       </div>
     </HomeSearchProvider>

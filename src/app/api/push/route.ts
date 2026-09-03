@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     webpush.setVapidDetails(
-      "mailto:info@vendorsgram.com",
+      "mailto:hello@vendorsgram.app",
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string,
       process.env.VAPID_PRIVATE_KEY as string,
     );
