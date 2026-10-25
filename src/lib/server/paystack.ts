@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from "crypto";
+
 const PAYSTACK_BASE = "https://api.paystack.co";
 
 export function paystackSecretKey() {
@@ -6,6 +8,20 @@ export function paystackSecretKey() {
 
 export function isPaystackConfigured() {
   return Boolean(paystackSecretKey());
+}
+
+/** Verify Paystack `x-paystack-signature` over the raw request body. */
+export function verifyPaystackWebhookSignature(rawBody: string, signature: string | null) {
+  const secret = paystackSecretKey();
+  if (!secret || !signature) return false;
+  const hash = createHmac("sha512", secret).update(rawBody).digest("hex");
+  try {
+    const expected = Buffer.from(hash, "utf8");
+    const received = Buffer.from(signature, "utf8");
+    return expected.length === received.length && timingSafeEqual(expected, received);
+  } catch {
+    return false;
+  }
 }
 
 type InitializeInput = {

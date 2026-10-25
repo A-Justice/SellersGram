@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
 import { bumpData } from "@/lib/use-listings";
 
@@ -10,6 +11,7 @@ function BoostCallback() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const reference = searchParams.get("reference") || searchParams.get("trxref") || "";
   const [state, setState] = useState<"verifying" | "success" | "error">("verifying");
   const [message, setMessage] = useState("Confirming your payment…");
@@ -18,6 +20,14 @@ function BoostCallback() {
     if (!reference) {
       setState("error");
       setMessage("Missing payment reference.");
+      return;
+    }
+    // After Paystack redirect, Firebase auth restores asynchronously.
+    // Wait for it so we don't falsely ask the user to sign in again.
+    if (authLoading) return;
+    if (!user) {
+      setState("error");
+      setMessage("Sign in again to finish boosting your ad.");
       return;
     }
 
@@ -55,7 +65,7 @@ function BoostCallback() {
     return () => {
       cancelled = true;
     };
-  }, [reference, router]);
+  }, [reference, router, authLoading, user]);
 
   return (
     <div className="mx-auto max-w-lg space-y-4 py-16 text-center">
