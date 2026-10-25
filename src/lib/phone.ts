@@ -30,3 +30,17 @@ export function formatPhoneDisplay(e164: string) {
   }
   return e164;
 }
+
+/** Build a wa.me link, or null if the number cannot be normalized. */
+export function toWhatsAppLink(phone: string, text?: string): string | null {
+  try {
+    const digits = toE164Phone(phone).replace(/\D/g, "");
+    if (!digits) return null;
+    const url = new URL(`https://wa.me/${digits}`);
+    const trimmed = text?.trim();
+    if (trimmed) url.searchParams.set("text", trimmed);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}

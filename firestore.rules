@@ -50,6 +50,21 @@ service cloud.firestore {
             || request.resource.data.boostedUntil == resource.data.boostedUntil)
         );
         allow delete: if isAdmin() || (signedIn() && request.auth.uid == userId);
+
+        // Named viewers — seller (folder owner) only; writes via Admin SDK.
+        match /viewers/{viewerId} {
+          allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+          allow write: if false;
+        }
+      }
+
+      // Flat listing docs: viewers readable only by that listing's seller.
+      match /viewers/{viewerId} {
+        allow read: if isAdmin() || (
+          signedIn()
+          && get(/databases/$(database)/documents/listings/$(userId)).data.sellerId == request.auth.uid
+        );
+        allow write: if false;
       }
     }
 

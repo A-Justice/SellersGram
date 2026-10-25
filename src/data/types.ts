@@ -58,6 +58,14 @@ export type UserInterest = {
   lastSeenAt?: string;
 };
 
+/** Signed-in people who opened a listing (seller-only visibility). */
+export type ListingViewer = {
+  viewerUid: string;
+  viewerName: string;
+  lastViewedAt: string;
+  viewCount: number;
+};
+
 export type BoostPackage = {
   id: string;
   days: number;

@@ -39,19 +39,33 @@ function toMillis(value: unknown): number | null {
   return null;
 }
 
-function inboxUrl() {
-  return `${publicEnv.appUrl.replace(/\/$/, "")}/inbox`;
+function appUrl(path: string) {
+  return `${publicEnv.appUrl.replace(/\/$/, "")}${path}`;
 }
 
-function unreadSmsBody(count: number) {
-  const noun = count === 1 ? "message" : "messages";
-  return `You have ${count} new ${noun} on Vendors Gram. Open your inbox: ${inboxUrl()}`;
+function digestSmsBody(input: { messages: number; views: number }) {
+  const parts: string[] = [];
+  if (input.messages > 0) {
+    parts.push(
+      `${input.messages} new message${input.messages === 1 ? "" : "s"}`,
+    );
+  }
+  if (input.views > 0) {
+    parts.push(`${input.views} new view${input.views === 1 ? "" : "s"}`);
+  }
+  const summary = parts.join(" and ");
+  if (input.messages > 0 && input.views > 0) {
+    return `You missed ${summary} on Vendors Gram. Inbox: ${appUrl("/inbox")} Ads: ${appUrl("/my-ads")}`;
+  }
+  if (input.messages > 0) {
+    return `You have ${summary} on Vendors Gram. Open your inbox: ${appUrl("/inbox")}`;
+  }
+  return `Your ads got ${summary} on Vendors Gram. See them: ${appUrl("/my-ads")}`;
 }
 
 /**
- * Text sellers who still have unread inbox messages from a previous day,
- * have not opened inbox since those messages, and have not already been
- * SMS-reminded for them. Intended to run daily at 08:00 Africa/Accra.
+ * Daily 08:00 Africa/Accra digest: unread inbox messages and/or pending
+ * listing views the seller has not checked yet.
  */
 export async function sendUnreadInboxSmsReminders(
   now = new Date(),
@@ -77,28 +91,29 @@ export async function sendUnreadInboxSmsReminders(
   const db = adminDb();
   const dayStart = startOfUtcDay(now).getTime();
 
-  // Single-field query (no composite index required). Filter type in memory.
-  const snap = await db.collection("notifications").where("read", "==", false).get();
+  const notifSnap = await db.collection("notifications").where("read", "==", false).get();
+  summary.scanned = notifSnap.size;
 
-  summary.scanned = snap.size;
-
-  const byUser = new Map<string, { createdAtMs: number }[]>();
-  for (const item of snap.docs) {
+  const messagesByUser = new Map<string, { createdAtMs: number }[]>();
+  for (const item of notifSnap.docs) {
     const data = item.data();
     if (data.type !== "message") continue;
     const userId = String(data.userId || "");
     const createdAtMs = toMillis(data.createdAt);
-    if (!userId || createdAtMs == null) continue;
-    // Only messages from before today → remind the following morning.
-    if (createdAtMs >= dayStart) continue;
-    const list = byUser.get(userId) || [];
+    if (!userId || createdAtMs == null || createdAtMs >= dayStart) continue;
+    const list = messagesByUser.get(userId) || [];
     list.push({ createdAtMs });
-    byUser.set(userId, list);
+    messagesByUser.set(userId, list);
   }
 
-  summary.candidates = byUser.size;
+  const viewsSnap = await db.collection("users").where("pendingViews", ">", 0).get();
+  const candidateIds = new Set<string>([
+    ...messagesByUser.keys(),
+    ...viewsSnap.docs.map((item) => item.id),
+  ]);
+  summary.candidates = candidateIds.size;
 
-  for (const [userId, items] of byUser) {
+  for (const userId of candidateIds) {
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
     if (!userSnap.exists) {
@@ -113,23 +128,54 @@ export async function sendUnreadInboxSmsReminders(
       continue;
     }
 
-    const newestUnreadMs = Math.max(...items.map((item) => item.createdAtMs));
-    const lastInboxMs = toMillis(user.lastInboxOpenedAt);
-    if (lastInboxMs != null && lastInboxMs >= newestUnreadMs) {
-      summary.skippedOpened += 1;
-      continue;
-    }
-
     const lastSmsMs = toMillis(user.lastUnreadSmsAt);
-    const pending = items.filter(
-      (item) => lastSmsMs == null || item.createdAtMs > lastSmsMs,
-    );
-    if (!pending.length) {
-      summary.skippedAlreadySent += 1;
+    const lastInboxMs = toMillis(user.lastInboxOpenedAt);
+    const lastDigestSeenMs = toMillis(user.lastSellerDigestSeenAt);
+
+    const messageItems = messagesByUser.get(userId) || [];
+    const newestUnreadMs = messageItems.length
+      ? Math.max(...messageItems.map((item) => item.createdAtMs))
+      : null;
+
+    let messageCount = 0;
+    if (messageItems.length) {
+      if (lastInboxMs != null && newestUnreadMs != null && lastInboxMs >= newestUnreadMs) {
+        // Inbox already opened after these messages.
+      } else {
+        messageCount = messageItems.filter(
+          (item) => lastSmsMs == null || item.createdAtMs > lastSmsMs,
+        ).length;
+      }
+    }
+
+    const pendingViews = Number(user.pendingViews || 0);
+    const pendingUpdatedMs = toMillis(user.pendingEngagementUpdatedAt);
+    let viewCount = 0;
+    if (
+      pendingViews > 0 &&
+      pendingUpdatedMs != null &&
+      pendingUpdatedMs < dayStart &&
+      (lastDigestSeenMs == null || lastDigestSeenMs < pendingUpdatedMs) &&
+      (lastSmsMs == null || lastSmsMs < pendingUpdatedMs)
+    ) {
+      viewCount = pendingViews;
+    }
+
+    if (!messageCount && !viewCount) {
+      if (messageItems.length || pendingViews > 0) {
+        if (lastInboxMs != null || lastDigestSeenMs != null) {
+          summary.skippedOpened += 1;
+        } else {
+          summary.skippedAlreadySent += 1;
+        }
+      }
       continue;
     }
 
-    const result = await sendSms(phone, unreadSmsBody(pending.length));
+    const result = await sendSms(
+      phone,
+      digestSmsBody({ messages: messageCount, views: viewCount }),
+    );
     if (!result.ok) {
       summary.failures += 1;
       summary.errors.push(`${userId}: ${result.error || "send failed"}`);
@@ -140,10 +186,14 @@ export async function sendUnreadInboxSmsReminders(
       continue;
     }
 
-    await userRef.set(
-      { lastUnreadSmsAt: FieldValue.serverTimestamp() },
-      { merge: true },
-    );
+    const patch: Record<string, unknown> = {
+      lastUnreadSmsAt: FieldValue.serverTimestamp(),
+    };
+    if (viewCount > 0) {
+      patch.pendingViews = 0;
+      patch.pendingCallInterests = 0;
+    }
+    await userRef.set(patch, { merge: true });
     summary.sent += 1;
   }
 

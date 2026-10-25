@@ -16,6 +16,7 @@ type Props = {
   sellerId: string;
   categoryId: string;
   regionId: string;
+  className?: string;
 };
 
 export function SellerPhoneReveal({
@@ -24,6 +25,7 @@ export function SellerPhoneReveal({
   sellerId,
   categoryId,
   regionId,
+  className = "col-span-2",
 }: Props) {
   const [revealed, setRevealed] = useState(false);
 
@@ -41,7 +43,7 @@ export function SellerPhoneReveal({
 
   if (!phone.trim()) {
     return (
-      <p className="col-span-2 text-sm text-muted">No phone number on this ad.</p>
+      <p className={`${className} text-sm text-muted`}>No phone number on this ad.</p>
     );
   }
 
@@ -50,7 +52,7 @@ export function SellerPhoneReveal({
       <button
         type="button"
         onClick={reveal}
-        className="col-span-2 inline-flex h-12 items-center justify-between rounded-full bg-canvas px-5 text-sm font-medium text-ink"
+        className={`${className} inline-flex h-12 items-center justify-between rounded-full bg-canvas px-5 text-sm font-medium text-ink`}
       >
         <span className="flex items-center gap-2">
           <Phone className="size-4 text-muted" />
@@ -62,7 +64,7 @@ export function SellerPhoneReveal({
   }
 
   return (
-    <div className="col-span-2 flex h-12 items-center gap-2 rounded-full bg-canvas px-4">
+    <div className={`${className} flex h-12 items-center gap-2 rounded-full bg-canvas px-4`}>
       <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-wide">
         {phone}
       </span>

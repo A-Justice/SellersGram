@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb, adminReady } from "@/lib/server/firebase-admin";
+import { requireUser } from "@/lib/server/require-user";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,14 @@ async function listingDocRef(sellerId: string, listingId: string) {
   if (flatSnap.exists) return flat;
 
   return null;
+}
+
+async function optionalUser(request: Request) {
+  try {
+    return await requireUser(request);
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(request: Request) {
@@ -45,10 +54,46 @@ export async function POST(request: Request) {
     }
 
     const field = type === "view" ? "viewCount" : "callInterestCount";
+    const pendingField = type === "view" ? "pendingViews" : "pendingCallInterests";
+    const db = adminDb();
+
     await listingRef.set(
       { [field]: FieldValue.increment(1) },
       { merge: true },
     );
+
+    // Accumulate missed engagement for the seller's daily 8am SMS digest.
+    await db.doc(`users/${sellerId}`).set(
+      {
+        [pendingField]: FieldValue.increment(1),
+        pendingEngagementUpdatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    // Named viewers: only signed-in people, never the seller themselves.
+    if (type === "view") {
+      const viewer = await optionalUser(request);
+      if (viewer && viewer.uid !== sellerId) {
+        const profile = await db.doc(`users/${viewer.uid}`).get();
+        const viewerName =
+          String(profile.data()?.name || "").trim() ||
+          viewer.email?.split("@")[0] ||
+          "Vendors Gram user";
+
+        await listingRef.collection("viewers").doc(viewer.uid).set(
+          {
+            viewerUid: viewer.uid,
+            viewerName,
+            sellerId,
+            listingId,
+            lastViewedAt: FieldValue.serverTimestamp(),
+            viewCount: FieldValue.increment(1),
+          },
+          { merge: true },
+        );
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

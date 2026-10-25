@@ -7,17 +7,21 @@ import { MessageCircle, Shield } from "lucide-react";
 import { DeleteAdButton } from "@/components/DeleteAdButton";
 import { ListingAttributes } from "@/components/ListingAttributes";
 import { ListingEngagementStats } from "@/components/ListingEngagementStats";
+import { ListingViewers } from "@/components/ListingViewers";
 import { RemoteImage } from "@/components/RemoteImage";
 import { ListingGrid } from "@/components/ListingGrid";
 import { ListingVideo } from "@/components/ListingVideo";
 import { SellerPhoneReveal } from "@/components/SellerPhoneReveal";
 import { TopBadge } from "@/components/TopBadge";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { useAuth } from "@/context/AuthContext";
 import { categoryById } from "@/lib/categories";
 import { trackListingEngagement } from "@/lib/engagement-store";
 import { startThread } from "@/lib/chat-store";
 import { boostDaysLeft, formatGhs, isBoosted, timeAgo } from "@/lib/format";
 import { regionById } from "@/lib/regions";
+import { toWhatsAppLink } from "@/lib/phone";
+import { markSellerDigestSeen } from "@/lib/seller-digest";
 import { useListings } from "@/lib/use-listings";
 
 export default function ListingPage() {
@@ -63,6 +67,11 @@ export default function ListingPage() {
       type: "view",
     });
   }, [listing, isMine, sellerId]);
+
+  useEffect(() => {
+    if (!isMine || !user) return;
+    void markSellerDigestSeen(user.uid);
+  }, [isMine, user]);
 
   if (ready && !listing) {
     return (
@@ -159,6 +168,7 @@ export default function ListingPage() {
               viewCount={listing.viewCount}
               callInterestCount={listing.callInterestCount}
               className="mt-2"
+              showEmpty
             />
           )}
           {isMine && (
@@ -180,6 +190,10 @@ export default function ListingPage() {
           )}
         </div>
 
+        {isMine ? (
+          <ListingViewers listingId={listing.id} sellerId={sellerId} />
+        ) : null}
+
         <div className="rounded-[24px] bg-paper p-5 shadow-[0_0_0_1px_var(--color-line)]">
           <div className="flex items-center justify-between">
             <div>
@@ -199,7 +213,7 @@ export default function ListingPage() {
           <div className="mt-4 grid grid-cols-2 gap-2">
             {isMine ? (
               <p className="col-span-2 text-sm text-muted">
-                This is your ad. Buyers can call or chat you from here.
+                This is your ad. Buyers can call, WhatsApp, or chat you from here.
               </p>
             ) : (
               <>
@@ -209,11 +223,20 @@ export default function ListingPage() {
                   sellerId={sellerId}
                   categoryId={listing.categoryId}
                   regionId={listing.regionId}
+                  className="col-span-2"
                 />
+                {toWhatsAppLink(listing.seller.phone) ? (
+                  <WhatsAppButton
+                    phone={listing.seller.phone}
+                    message={`Hi, I'm interested in "${listing.title}" on Vendors Gram.`}
+                  />
+                ) : null}
                 <button
                   type="button"
                   onClick={chat}
-                  className="col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-paper"
+                  className={`${
+                    toWhatsAppLink(listing.seller.phone) ? "" : "col-span-2 "
+                  }inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-paper`}
                 >
                   <MessageCircle className="size-4" />
                   Chat

@@ -68,6 +68,16 @@ export default function HomePage() {
         <CategoryGrid />
       </section>
 
+      <section className="space-y-4">
+        <div className="flex items-end justify-between">
+          <h2 className="font-display text-2xl">Top Ads</h2>
+          <Link href="/search" className="text-sm font-medium text-accent">
+            See all
+          </Link>
+        </div>
+        {ready ? <ListingGrid listings={top} /> : <GridSkeleton />}
+      </section>
+
       {showRecommended ? (
         <section className="space-y-4">
           <div className="flex items-end justify-between">
@@ -85,16 +95,6 @@ export default function HomePage() {
           )}
         </section>
       ) : null}
-
-      <section className="space-y-4">
-        <div className="flex items-end justify-between">
-          <h2 className="font-display text-2xl">Top Ads</h2>
-          <Link href="/search" className="text-sm font-medium text-accent">
-            See all
-          </Link>
-        </div>
-        {ready ? <ListingGrid listings={top} /> : <GridSkeleton />}
-      </section>
 
       <section className="space-y-4">
         <div className="flex items-end justify-between">
