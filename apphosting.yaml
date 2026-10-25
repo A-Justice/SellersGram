@@ -99,3 +99,20 @@ env:
     secret: TEST_PAYSTACK_SECRET_KEY
     availability:
       - RUNTIME
+
+  # Unread inbox SMS (mNotify). Create these secrets in App Hosting / Secret Manager,
+  # then schedule: scripts/schedule-unread-sms.sh → POST /api/cron/unread-sms at 08:00 Africa/Accra
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+    availability:
+      - RUNTIME
+
+  - variable: MNOTIFY_API_KEY
+    secret: MNOTIFY_API_KEY
+    availability:
+      - RUNTIME
+
+  - variable: MNOTIFY_SENDER_ID
+    value: "VendorsGram"
+    availability:
+      - RUNTIME

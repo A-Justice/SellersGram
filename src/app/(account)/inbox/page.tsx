@@ -19,6 +19,7 @@ import {
   subscribeThreads,
 } from "@/lib/chat-store";
 import { timeAgo } from "@/lib/format";
+import { markInboxOpened } from "@/lib/inbox-presence";
 import { markAllNotificationsRead } from "@/lib/notifications-store";
 import type { ChatMessage, ChatThread } from "@/data/types";
 
@@ -47,6 +48,11 @@ function Inbox() {
       setMobileChatOpen(true);
     }
   }, [threadParam]);
+
+  useEffect(() => {
+    if (!user) return;
+    void markInboxOpened(user.uid);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;

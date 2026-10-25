@@ -24,3 +24,19 @@ env:
     secret: LIVE_PAYSTACK_SECRET_KEY
     availability:
       - RUNTIME
+
+  # Same secret names as base apphosting.yaml — set values in GCC / App Hosting secrets.
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+    availability:
+      - RUNTIME
+
+  - variable: MNOTIFY_API_KEY
+    secret: MNOTIFY_API_KEY
+    availability:
+      - RUNTIME
+
+  - variable: MNOTIFY_SENDER_ID
+    value: "VendorsGram"
+    availability:
+      - RUNTIME
