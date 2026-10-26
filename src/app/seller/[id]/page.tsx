@@ -37,23 +37,23 @@ export default function SellerPage() {
       : "New seller";
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto w-full max-w-5xl space-y-8 pb-8">
       <section className="overflow-hidden rounded-[28px] bg-paper shadow-[0_0_0_1px_var(--color-line)]">
-        <div className="relative overflow-hidden px-5 pb-6 pt-7 sm:px-7">
+        <div className="relative overflow-hidden px-5 py-6 sm:px-8 sm:py-8">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(15,106,77,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom_left,_rgba(212,160,23,0.1),_transparent_50%)]"
           />
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex min-w-0 items-start gap-4">
               <div className="grid size-16 shrink-0 place-items-center rounded-full bg-ink font-display text-xl tracking-tight text-paper sm:size-20 sm:text-2xl">
                 {initials(seller.name)}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                   Seller
                 </p>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
                     {seller.name}
                   </h1>
@@ -64,7 +64,7 @@ export default function SellerPage() {
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
                   <span className="inline-flex items-center gap-1">
                     <MapPin className="size-3.5 shrink-0" />
                     {seller.city || "Ghana"}
@@ -75,11 +75,11 @@ export default function SellerPage() {
               </div>
             </div>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[16rem] sm:flex-row">
+            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:min-w-[16rem]">
               {telHref ? (
                 <a
                   href={telHref}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-canvas text-sm font-medium text-ink shadow-[0_0_0_1px_var(--color-line)] sm:flex-none sm:px-5"
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-canvas text-sm font-medium text-ink shadow-[0_0_0_1px_var(--color-line)] lg:flex-none lg:px-5"
                 >
                   <Phone className="size-4" />
                   Call
@@ -89,7 +89,7 @@ export default function SellerPage() {
                 <WhatsAppButton
                   phone={phone}
                   message={`Hi ${seller.name}, I saw your ads on Vendors Gram.`}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#25D366] text-sm font-medium text-white sm:flex-none sm:px-5"
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#25D366] text-sm font-medium text-white lg:flex-none lg:px-5"
                 />
               ) : null}
             </div>
@@ -97,14 +97,12 @@ export default function SellerPage() {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <h2 className="font-display text-2xl tracking-tight">Live ads</h2>
-            <p className="mt-1 text-sm text-muted">
-              {ads.length} listing{ads.length === 1 ? "" : "s"} from {seller.name}
-            </p>
-          </div>
+      <section className="space-y-5">
+        <div>
+          <h2 className="font-display text-2xl tracking-tight">Live ads</h2>
+          <p className="mt-1 text-sm text-muted">
+            {ads.length} listing{ads.length === 1 ? "" : "s"} from {seller.name}
+          </p>
         </div>
         {ads.length ? (
           <ListingGrid listings={ads} />

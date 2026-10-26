@@ -41,9 +41,9 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 overflow-x-hidden border-b border-line/80 bg-canvas/85 backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-0 z-40 border-b border-line/80 bg-canvas/85 backdrop-blur-xl">
       {showMobileSearch ? (
-        <div className="mx-auto flex h-16 items-center gap-2 px-4 md:hidden">
+        <div className="mx-auto flex h-16 items-center gap-2 px-5 md:hidden">
           <button
             type="button"
             aria-label="Close search"
@@ -69,7 +69,7 @@ export function Header() {
       ) : null}
 
       <div
-        className={`mx-auto flex h-16 max-w-6xl min-w-0 items-center gap-2 px-4 lg:h-[4.25rem] lg:gap-4 lg:px-6 ${
+        className={`mx-auto flex h-16 max-w-6xl min-w-0 items-center gap-2 px-5 lg:h-[4.25rem] lg:gap-4 lg:px-8 ${
           showMobileSearch ? "hidden md:flex" : "flex"
         }`}
       >

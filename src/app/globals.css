@@ -24,17 +24,21 @@
   --font-display: var(--font-syne);
 }
 
-html,
-body {
+html {
   background: var(--canvas);
   color: var(--ink);
-  height: 100%;
-  overflow-x: clip;
+  /* min-height (not height) so normal pages can grow and scroll */
+  min-height: 100%;
 }
 
 body {
+  background: var(--canvas);
+  color: var(--ink);
   font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   min-height: 100%;
+  min-height: 100dvh;
+  /* Do NOT use overflow-x: clip here — it forces overflow-y: clip and kills page scroll. */
+  overflow-x: hidden;
 }
 
 body:has(.shell-fixed-height) {

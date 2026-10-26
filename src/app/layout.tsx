@@ -48,9 +48,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${syne.variable} h-full antialiased`}
+      className={`${outfit.variable} ${syne.variable} antialiased`}
     >
-      <body className="min-h-full bg-canvas text-ink">
+      <body className="bg-canvas text-ink">
         <EnvBanner />
         <Providers>{children}</Providers>
       </body>
