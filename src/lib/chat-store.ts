@@ -18,6 +18,12 @@ import {
 import type { ChatMessage, ChatThread, Listing } from "@/data/types";
 import { db } from "@/lib/firebase";
 import { notifyUser } from "@/lib/notifications-store";
+import {
+  ADMIN_DISPLAY_NAME,
+  ADMIN_SYSTEM_UID,
+  adminModerationThreadId,
+  isAdminSystemUid,
+} from "@/lib/owner";
 
 function threadFromDoc(id: string, data: Record<string, unknown>): ChatThread {
   return {
@@ -31,6 +37,7 @@ function threadFromDoc(id: string, data: Record<string, unknown>): ChatThread {
     sellerName: String(data.sellerName || ""),
     lastMessage: String(data.lastMessage || ""),
     updatedAt: String(data.updatedAt || new Date().toISOString()),
+    isAdminThread: Boolean(data.isAdminThread) || isAdminSystemUid(String(data.buyerId || "")),
   };
 }
 
@@ -150,6 +157,9 @@ export async function sendMessage(
   text: string,
 ) {
   if (!db) throw new Error("Firebase is not connected.");
+  if (thread.isAdminThread || isAdminSystemUid(thread.buyerId)) {
+    throw new Error("You can’t reply to Admin notices.");
+  }
   const now = new Date().toISOString();
   const from: "buyer" | "seller" = user.uid === thread.sellerId ? "seller" : "buyer";
   await addDoc(collection(db, "threads", thread.id, "messages"), {
@@ -215,4 +225,65 @@ export async function clearThread(thread: ChatThread) {
     for (const ref of refs.slice(i, i + 450)) batch.delete(ref);
     await batch.commit();
   }
+}
+
+/** Inbox notice from system Admin → seller about a rejected/hidden ad. */
+export async function sendAdminListingNotice(input: {
+  listing: Listing;
+  action: "rejected" | "hidden";
+  reason: string;
+}) {
+  if (!db) throw new Error("Firebase is not connected.");
+  const reason = input.reason.trim();
+  if (!reason) throw new Error("Add a reason for the seller.");
+
+  const listing = input.listing;
+  const sellerId = listing.sellerId || listing.seller.id;
+  if (!sellerId) throw new Error("Seller missing on this ad.");
+
+  const threadId = adminModerationThreadId(listing.id);
+  const now = new Date().toISOString();
+  const actionLabel = input.action === "rejected" ? "not approved" : "hidden";
+  const text = [
+    `Your ad “${listing.title}” was ${actionLabel}.`,
+    "",
+    `Reason: ${reason}`,
+  ].join("\n");
+
+  await setDoc(
+    doc(db, "threads", threadId),
+    {
+      listingId: listing.id,
+      listingTitle: listing.title,
+      listingPhoto: listing.photoUrls[0] || "",
+      buyerId: ADMIN_SYSTEM_UID,
+      sellerId,
+      buyerName: ADMIN_DISPLAY_NAME,
+      sellerName: listing.seller.name,
+      lastMessage: text,
+      updatedAt: now,
+      isAdminThread: true,
+    },
+    { merge: true },
+  );
+
+  await addDoc(collection(db, "threads", threadId, "messages"), {
+    fromUid: ADMIN_SYSTEM_UID,
+    from: "buyer",
+    text,
+    createdAt: now,
+    createdAtServer: serverTimestamp(),
+  });
+
+  await notifyUser({
+    userId: sellerId,
+    fromUid: ADMIN_SYSTEM_UID,
+    title: `Admin · ${listing.title}`,
+    body: reason,
+    href: `/inbox?thread=${threadId}`,
+    threadId,
+    type: "message",
+  });
+
+  return threadId;
 }

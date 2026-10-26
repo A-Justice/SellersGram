@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ListingGrid } from "@/components/ListingGrid";
 import { SellerPageSkeleton } from "@/components/PageSkeleton";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { isAdminSystemUid } from "@/lib/owner";
 import { useListings } from "@/lib/use-listings";
 
 function initials(name: string) {
@@ -21,6 +22,10 @@ export default function SellerPage() {
     (listing) => listing.seller.id === id || listing.sellerId === id,
   );
   const seller = ads[0]?.seller;
+
+  if (isAdminSystemUid(id)) {
+    return <p className="py-16 text-center text-muted">Profile not available.</p>;
+  }
 
   if (ready && !seller) {
     return <p className="py-16 text-center text-muted">Seller not found.</p>;

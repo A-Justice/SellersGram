@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { RemoteImage } from "@/components/RemoteImage";
 import { DeleteAdButton } from "@/components/DeleteAdButton";
+import { ModerationReasonDialog } from "@/components/admin/ModerationReasonDialog";
 import { setListingStatus } from "@/lib/listings-store";
 import { formatGhs, timeAgo } from "@/lib/format";
 import { useListings } from "@/lib/use-listings";
@@ -45,6 +46,12 @@ export default function AdminListingsPage() {
   const [tab, setTab] = useState<Tab>("pending");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [moderation, setModeration] = useState<{
+    listing: Listing;
+    action: "rejected" | "hidden";
+  } | null>(null);
+  const [modBusy, setModBusy] = useState(false);
+  const [modError, setModError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const counts = useMemo(() => {
@@ -107,12 +114,32 @@ export default function AdminListingsPage() {
   }
 
   function act(id: string, status: ListingStatus) {
-    void setListingStatus(
-      listings,
-      id,
-      status,
-      status === "rejected" ? { rejectReason: "Does not match the rules" } : {},
-    );
+    const listing = listings.find((item) => item.id === id);
+    if (!listing) return;
+    if (status === "rejected" || status === "hidden") {
+      setModError(null);
+      setModeration({ listing, action: status });
+      return;
+    }
+    void setListingStatus(listings, id, status);
+  }
+
+  async function confirmModeration(reason: string) {
+    if (!moderation) return;
+    setModBusy(true);
+    setModError(null);
+    try {
+      await setListingStatus(listings, moderation.listing.id, moderation.action, {
+        rejectReason: reason,
+      });
+      setModeration(null);
+    } catch (error) {
+      setModError(
+        error instanceof Error ? error.message : "Could not update this ad.",
+      );
+    } finally {
+      setModBusy(false);
+    }
   }
 
   return (
@@ -224,6 +251,21 @@ export default function AdminListingsPage() {
           <p className="text-sm text-muted">No listings to show.</p>
         ) : null}
       </div>
+
+      {moderation ? (
+        <ModerationReasonDialog
+          action={moderation.action}
+          listingTitle={moderation.listing.title}
+          busy={modBusy}
+          error={modError}
+          onCancel={() => {
+            if (modBusy) return;
+            setModeration(null);
+            setModError(null);
+          }}
+          onConfirm={(reason) => void confirmModeration(reason)}
+        />
+      ) : null}
     </div>
   );
 }

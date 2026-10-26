@@ -84,6 +84,8 @@ export type ChatThread = {
   sellerName: string;
   lastMessage: string;
   updatedAt: string;
+  /** Moderation notice from the system Admin identity (no public profile). */
+  isAdminThread?: boolean;
 };
 
 export type ChatMessage = {

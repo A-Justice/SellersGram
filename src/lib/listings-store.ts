@@ -308,18 +308,27 @@ export async function setListingStatus(
         : current.publishedAt,
   });
 
-  if (status === "live" || status === "rejected") {
+  if (status === "live") {
     const sellerId = current.sellerId || current.seller.id;
     await notifyUser({
       userId: sellerId,
-      title: status === "live" ? "Your ad is live" : "Your ad was not approved",
-      body:
-        status === "live"
-          ? `${current.title} is now visible to buyers.`
-          : extra.rejectReason || current.title,
+      title: "Your ad is live",
+      body: `${current.title} is now visible to buyers.`,
       href: `/listing/${current.id}`,
       type: "listing",
     });
+  }
+
+  if (status === "rejected" || status === "hidden") {
+    const reason = String(extra.rejectReason || "").trim();
+    if (reason) {
+      const { sendAdminListingNotice } = await import("@/lib/chat-store");
+      await sendAdminListingNotice({
+        listing: { ...current, ...extra, status },
+        action: status,
+        reason,
+      });
+    }
   }
 }
 

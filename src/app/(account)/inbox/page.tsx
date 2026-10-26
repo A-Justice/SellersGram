@@ -21,6 +21,7 @@ import {
 import { timeAgo } from "@/lib/format";
 import { markInboxOpened } from "@/lib/inbox-presence";
 import { markAllNotificationsRead } from "@/lib/notifications-store";
+import { ADMIN_DISPLAY_NAME, isAdminSystemUid } from "@/lib/owner";
 import type { ChatMessage, ChatThread } from "@/data/types";
 
 function Inbox() {
@@ -224,7 +225,9 @@ function Inbox() {
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">
-                    {thread.listingTitle}
+                    {isAdminSystemUid(thread.buyerId) || thread.isAdminThread
+                      ? `${ADMIN_DISPLAY_NAME} · ${thread.listingTitle}`
+                      : thread.listingTitle}
                   </span>
                   <span className="block truncate text-xs text-muted">
                     {thread.lastMessage}
@@ -262,7 +265,9 @@ function Inbox() {
                     {active.listingTitle}
                   </Link>
                   <p className="text-xs text-muted">
-                    {active.buyerName} · {active.sellerName}
+                    {isAdminSystemUid(active.buyerId) || active.isAdminThread
+                      ? ADMIN_DISPLAY_NAME
+                      : `${active.buyerName} · ${active.sellerName}`}
                   </p>
                 </div>
               </div>
@@ -357,20 +362,27 @@ function Inbox() {
               })}
               <div ref={messagesEndRef} aria-hidden />
             </div>
-            <form
-              onSubmit={(event) => void onSend(event)}
-              className="flex shrink-0 gap-2 border-t border-line px-5 py-4 sm:px-6"
-            >
-              <input
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                className="field"
-                placeholder="Write a message"
-              />
-              <button className="h-11 rounded-full bg-ink px-5 text-sm text-paper">
-                Send
-              </button>
-            </form>
+            {isAdminSystemUid(active.buyerId) || active.isAdminThread ? (
+              <p className="shrink-0 border-t border-line px-5 py-4 text-sm text-muted sm:px-6">
+                This is a notice from Admin. You can&apos;t reply or view an Admin
+                profile.
+              </p>
+            ) : (
+              <form
+                onSubmit={(event) => void onSend(event)}
+                className="flex shrink-0 gap-2 border-t border-line px-5 py-4 sm:px-6"
+              >
+                <input
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  className="field"
+                  placeholder="Write a message"
+                />
+                <button className="h-11 rounded-full bg-ink px-5 text-sm text-paper">
+                  Send
+                </button>
+              </form>
+            )}
           </>
         ) : (
           <div className="grid flex-1 place-items-center text-sm text-muted">
