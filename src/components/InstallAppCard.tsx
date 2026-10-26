@@ -1,38 +1,40 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type BeforeInstall = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
+import { useDeferredInstallPrompt } from "@/lib/install-prompt";
+import {
+  isIosDevice,
+  isPwaInstalled,
+  PUSH_DISMISSED_STORAGE_KEY,
+  PUSH_PROMPT_STORAGE_KEY,
+} from "@/lib/pwa";
 
 export function InstallAppCard() {
-  const [standalone, setStandalone] = useState(true);
+  const installEvent = useDeferredInstallPrompt();
+  const [installed, setInstalled] = useState(true);
   const [ios, setIos] = useState(false);
-  const [installEvent, setInstallEvent] = useState<BeforeInstall | null>(null);
 
   useEffect(() => {
-    const media = window.matchMedia("(display-mode: standalone)");
-    const nav = window.navigator as Navigator & { standalone?: boolean };
-    setStandalone(media.matches || Boolean(nav.standalone));
-    setIos(/iPad|iPhone|iPod/.test(navigator.userAgent));
-
-    function onPrompt(event: Event) {
-      event.preventDefault();
-      setInstallEvent(event as BeforeInstall);
-    }
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+    setIos(isIosDevice());
+    let cancelled = false;
+    void isPwaInstalled().then((value) => {
+      if (!cancelled) setInstalled(value);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  if (standalone) return null;
+  if (installed) return null;
 
   async function install() {
     if (!installEvent) return;
     await installEvent.prompt();
-    await installEvent.userChoice;
-    setInstallEvent(null);
+    const choice = await installEvent.userChoice;
+    if (choice.outcome === "accepted") {
+      window.localStorage.setItem(PUSH_PROMPT_STORAGE_KEY, "1");
+      window.localStorage.removeItem(PUSH_DISMISSED_STORAGE_KEY);
+    }
   }
 
   return (

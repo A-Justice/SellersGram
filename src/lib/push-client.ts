@@ -37,6 +37,14 @@ export async function registerServiceWorker() {
   });
 }
 
+async function readyRegistration() {
+  const existing = await registerServiceWorker();
+  if (existing) {
+    await existing.update().catch(() => undefined);
+  }
+  return navigator.serviceWorker.ready;
+}
+
 export async function enableDevicePush(uid: string) {
   if (!db || !pushSupported()) {
     throw new Error("Device alerts are not available here.");
@@ -45,7 +53,7 @@ export async function enableDevicePush(uid: string) {
   if (permission !== "granted") {
     throw new Error("Allow notifications in your browser to get device alerts.");
   }
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await readyRegistration();
   const existing = await registration.pushManager.getSubscription();
   const subscription =
     existing ||
@@ -60,9 +68,32 @@ export async function enableDevicePush(uid: string) {
   return payload;
 }
 
+/**
+ * If the user already granted notification permission (e.g. reopened the
+ * installed PWA), refresh the Web Push subscription into Firestore.
+ */
+export async function syncDevicePush(uid: string) {
+  if (!db || !pushSupported()) return null;
+  if (Notification.permission !== "granted") return null;
+
+  const registration = await readyRegistration();
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicEnv.vapidPublicKey),
+    });
+  }
+  const payload = subscription.toJSON() as PushSub;
+  await updateDoc(doc(db, "users", uid), {
+    pushSubscriptions: arrayUnion(payload),
+  });
+  return payload;
+}
+
 export async function disableDevicePush(uid: string) {
   if (!db || !("serviceWorker" in navigator)) return;
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await readyRegistration();
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
   const payload = subscription.toJSON() as PushSub;
@@ -74,6 +105,7 @@ export async function disableDevicePush(uid: string) {
 
 export async function currentPushSubscription() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  await registerServiceWorker();
   const registration = await navigator.serviceWorker.ready;
   return registration.pushManager.getSubscription();
 }

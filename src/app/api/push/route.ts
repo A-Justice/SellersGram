@@ -60,13 +60,30 @@ export async function POST(request: Request) {
             },
           },
           payload,
+          { TTL: 60 * 60 * 12, urgency: "high" },
         ),
       ),
     );
 
+    const expired = results
+      .map((result, index) => {
+        if (result.status !== "rejected") return null;
+        const statusCode =
+          typeof result.reason?.statusCode === "number"
+            ? result.reason.statusCode
+            : 0;
+        // Gone / unsubscribed — caller can drop these from the user doc later.
+        if (statusCode === 404 || statusCode === 410) {
+          return subscriptions[index]?.endpoint || null;
+        }
+        return null;
+      })
+      .filter(Boolean);
+
     return NextResponse.json({
       ok: true,
       sent: results.filter((item) => item.status === "fulfilled").length,
+      expired,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Push failed";

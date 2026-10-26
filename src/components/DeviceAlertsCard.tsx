@@ -48,8 +48,8 @@ export function DeviceAlertsCard() {
       <h2 className="font-display text-2xl tracking-tight">Device alerts</h2>
       <p className="mt-2 text-sm text-muted">
         {supported
-          ? "Get a banner on your phone or computer when someone messages you or an ad is approved."
-          : "This browser cannot show device alerts. Install the app or try Chrome on Android."}
+          ? "Get a banner on your phone or computer when someone messages you, comments on your ad, or an ad is approved — including when the app is closed."
+          : "This browser cannot show device alerts. Install Vendors Gram to your home screen (required on iPhone), or try Chrome on Android."}
       </p>
       {supported && (
         <button

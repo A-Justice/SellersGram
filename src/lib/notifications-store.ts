@@ -104,7 +104,7 @@ export async function notifyUser(input: {
   const token = await auth?.currentUser?.getIdToken();
   if (!token) return;
 
-  await fetch("/api/push", {
+  const response = await fetch("/api/push", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -116,5 +116,28 @@ export async function notifyUser(input: {
       href: input.href,
       subscriptions,
     }),
-  }).catch(() => undefined);
+  }).catch(() => null);
+
+  if (!response?.ok) return;
+  const result = (await response.json().catch(() => null)) as {
+    expired?: string[];
+  } | null;
+  const expired = result?.expired?.filter(Boolean) || [];
+  if (!expired.length) return;
+
+  // Drop dead endpoints so we stop retrying them.
+  const next = subscriptions.filter(
+    (item) =>
+      !(
+        item &&
+        typeof item === "object" &&
+        "endpoint" in item &&
+        expired.includes(String((item as { endpoint?: string }).endpoint || ""))
+      ),
+  );
+  if (next.length !== subscriptions.length) {
+    await updateDoc(doc(db, "users", input.userId), {
+      pushSubscriptions: next,
+    }).catch(() => undefined);
+  }
 }

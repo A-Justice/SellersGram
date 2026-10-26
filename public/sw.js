@@ -9,7 +9,12 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
-  let payload = { title: "Vendors Gram", body: "", href: "/" };
+  let payload = {
+    title: "Vendors Gram",
+    body: "",
+    href: "/",
+    icon: "/icon-192.png",
+  };
   try {
     payload = { ...payload, ...event.data.json() };
   } catch {
@@ -22,14 +27,20 @@ self.addEventListener("push", (event) => {
         type: "window",
         includeUncontrolled: true,
       });
-      const visible = windows.some((client) => client.visibilityState === "visible");
+      // Skip the system banner only when the app is open and visible —
+      // in-app notifications cover that case. Background / installed PWA still alerts.
+      const visible = windows.some(
+        (client) => client.visibilityState === "visible" && client.focused,
+      );
       if (visible) return;
 
       await self.registration.showNotification(payload.title || "Vendors Gram", {
         body: payload.body || "",
-        icon: "/icon-192.png",
+        icon: payload.icon || "/icon-192.png",
         badge: "/badge-96.png",
         data: { href: payload.href || "/" },
+        renotify: true,
+        tag: payload.href || "vendorsgram",
       });
     })(),
   );
