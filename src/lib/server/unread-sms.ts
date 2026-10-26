@@ -15,6 +15,8 @@ export type UnreadSmsSummary = {
   errors: string[];
 };
 
+type TimedItem = { createdAtMs: number };
+
 function startOfUtcDay(date: Date) {
   return new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
@@ -43,8 +45,24 @@ function appUrl(path: string) {
   return `${publicEnv.appUrl.replace(/\/$/, "")}${path}`;
 }
 
-function digestSmsBody(input: { messages: number; views: number }) {
+function isApprovalNotification(data: Record<string, unknown>) {
+  if (data.type !== "listing") return false;
+  const title = String(data.title || "").toLowerCase();
+  // Matches setListingStatus → "Your ad is live"
+  return title.includes("live") && !title.includes("not approved");
+}
+
+function digestSmsBody(input: {
+  messages: number;
+  views: number;
+  approvals: number;
+}) {
   const parts: string[] = [];
+  if (input.approvals > 0) {
+    parts.push(
+      `${input.approvals} approved ad${input.approvals === 1 ? "" : "s"}`,
+    );
+  }
   if (input.messages > 0) {
     parts.push(
       `${input.messages} new message${input.messages === 1 ? "" : "s"}`,
@@ -53,19 +71,32 @@ function digestSmsBody(input: { messages: number; views: number }) {
   if (input.views > 0) {
     parts.push(`${input.views} new view${input.views === 1 ? "" : "s"}`);
   }
-  const summary = parts.join(" and ");
-  if (input.messages > 0 && input.views > 0) {
-    return `You missed ${summary} on Vendors Gram. Inbox: ${appUrl("/inbox")} Ads: ${appUrl("/my-ads")}`;
+
+  const summary = parts.join(", ").replace(/, ([^,]*)$/, " and $1");
+
+  if (input.approvals > 0 && !input.messages && !input.views) {
+    return `Good news — you have ${summary} on Vendors Gram. See ${
+      input.approvals === 1 ? "it" : "them"
+    }: ${appUrl("/my-ads")}`;
   }
-  if (input.messages > 0) {
+  if (input.messages > 0 && !input.views && !input.approvals) {
     return `You have ${summary} on Vendors Gram. Open your inbox: ${appUrl("/inbox")}`;
   }
-  return `Your ads got ${summary} on Vendors Gram. See them: ${appUrl("/my-ads")}`;
+  if (input.views > 0 && !input.messages && !input.approvals) {
+    return `Your ads got ${summary} on Vendors Gram. See them: ${appUrl("/my-ads")}`;
+  }
+  return `You missed ${summary} on Vendors Gram. Inbox: ${appUrl("/inbox")} Ads: ${appUrl("/my-ads")}`;
+}
+
+function countUnsent(items: TimedItem[], lastSmsMs: number | null) {
+  return items.filter(
+    (item) => lastSmsMs == null || item.createdAtMs > lastSmsMs,
+  ).length;
 }
 
 /**
- * Daily 08:00 Africa/Accra digest: unread inbox messages and/or pending
- * listing views the seller has not checked yet.
+ * Daily 08:00 Africa/Accra digest: unread messages, pending listing views,
+ * and approved ads the seller has not checked yet.
  */
 export async function sendUnreadInboxSmsReminders(
   now = new Date(),
@@ -94,21 +125,33 @@ export async function sendUnreadInboxSmsReminders(
   const notifSnap = await db.collection("notifications").where("read", "==", false).get();
   summary.scanned = notifSnap.size;
 
-  const messagesByUser = new Map<string, { createdAtMs: number }[]>();
+  const messagesByUser = new Map<string, TimedItem[]>();
+  const approvalsByUser = new Map<string, TimedItem[]>();
+
   for (const item of notifSnap.docs) {
-    const data = item.data();
-    if (data.type !== "message") continue;
+    const data = item.data() as Record<string, unknown>;
     const userId = String(data.userId || "");
     const createdAtMs = toMillis(data.createdAt);
     if (!userId || createdAtMs == null || createdAtMs >= dayStart) continue;
-    const list = messagesByUser.get(userId) || [];
-    list.push({ createdAtMs });
-    messagesByUser.set(userId, list);
+
+    if (data.type === "message") {
+      const list = messagesByUser.get(userId) || [];
+      list.push({ createdAtMs });
+      messagesByUser.set(userId, list);
+      continue;
+    }
+
+    if (isApprovalNotification(data)) {
+      const list = approvalsByUser.get(userId) || [];
+      list.push({ createdAtMs });
+      approvalsByUser.set(userId, list);
+    }
   }
 
   const viewsSnap = await db.collection("users").where("pendingViews", ">", 0).get();
   const candidateIds = new Set<string>([
     ...messagesByUser.keys(),
+    ...approvalsByUser.keys(),
     ...viewsSnap.docs.map((item) => item.id),
   ]);
   summary.candidates = candidateIds.size;
@@ -133,6 +176,7 @@ export async function sendUnreadInboxSmsReminders(
     const lastDigestSeenMs = toMillis(user.lastSellerDigestSeenAt);
 
     const messageItems = messagesByUser.get(userId) || [];
+    const approvalItems = approvalsByUser.get(userId) || [];
     const newestUnreadMs = messageItems.length
       ? Math.max(...messageItems.map((item) => item.createdAtMs))
       : null;
@@ -142,9 +186,24 @@ export async function sendUnreadInboxSmsReminders(
       if (lastInboxMs != null && newestUnreadMs != null && lastInboxMs >= newestUnreadMs) {
         // Inbox already opened after these messages.
       } else {
-        messageCount = messageItems.filter(
-          (item) => lastSmsMs == null || item.createdAtMs > lastSmsMs,
-        ).length;
+        messageCount = countUnsent(messageItems, lastSmsMs);
+      }
+    }
+
+    // Approvals: clear if seller already checked My ads after the newest approval.
+    const newestApprovalMs = approvalItems.length
+      ? Math.max(...approvalItems.map((item) => item.createdAtMs))
+      : null;
+    let approvalCount = 0;
+    if (approvalItems.length) {
+      if (
+        lastDigestSeenMs != null &&
+        newestApprovalMs != null &&
+        lastDigestSeenMs >= newestApprovalMs
+      ) {
+        // Seller already opened My ads / own listing after approval.
+      } else {
+        approvalCount = countUnsent(approvalItems, lastSmsMs);
       }
     }
 
@@ -161,8 +220,8 @@ export async function sendUnreadInboxSmsReminders(
       viewCount = pendingViews;
     }
 
-    if (!messageCount && !viewCount) {
-      if (messageItems.length || pendingViews > 0) {
+    if (!messageCount && !viewCount && !approvalCount) {
+      if (messageItems.length || pendingViews > 0 || approvalItems.length) {
         if (lastInboxMs != null || lastDigestSeenMs != null) {
           summary.skippedOpened += 1;
         } else {
@@ -174,7 +233,11 @@ export async function sendUnreadInboxSmsReminders(
 
     const result = await sendSms(
       phone,
-      digestSmsBody({ messages: messageCount, views: viewCount }),
+      digestSmsBody({
+        messages: messageCount,
+        views: viewCount,
+        approvals: approvalCount,
+      }),
     );
     if (!result.ok) {
       summary.failures += 1;

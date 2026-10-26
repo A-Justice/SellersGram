@@ -14,6 +14,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
+import { AccountShellSkeleton } from "@/components/PageSkeleton";
 import { useAuth } from "@/context/AuthContext";
 
 const NAV = [
@@ -113,11 +114,7 @@ function AccountShellInner({ children }: { children: ReactNode }) {
   }
 
   if (loading || !user) {
-    return (
-      <div className="grid h-full place-items-center text-sm text-muted">
-        Checking account…
-      </div>
-    );
+    return <AccountShellSkeleton />;
   }
 
   return (

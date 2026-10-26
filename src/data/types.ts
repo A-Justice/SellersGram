@@ -117,3 +117,16 @@ export type AppNotification = {
   read: boolean;
   createdAt: string;
 };
+
+/** Public listing comments — replies nest one level (YouTube-style). */
+export type ListingComment = {
+  id: string;
+  listingId: string;
+  sellerId: string;
+  /** Null for top-level; replies always point at the root comment id. */
+  parentId: string | null;
+  authorId: string;
+  authorName: string;
+  text: string;
+  createdAt: string;
+};

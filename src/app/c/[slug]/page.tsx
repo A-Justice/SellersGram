@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { InfiniteListingGrid } from "@/components/InfiniteListingGrid";
+import { ListingGridSkeleton } from "@/components/PageSkeleton";
 import { SearchBar } from "@/components/SearchBar";
 import { categoryById } from "@/lib/categories";
 import { embedQuery } from "@/lib/embeddings";
@@ -99,14 +100,7 @@ function CategoryResults() {
           </p>
         )
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div
-              key={index}
-              className="aspect-[4/5] animate-pulse rounded-[22px] bg-paper"
-            />
-          ))}
-        </div>
+        <ListingGridSkeleton count={8} />
       )}
     </div>
   );
@@ -117,8 +111,9 @@ export default function CategoryPage() {
     <Suspense
       fallback={
         <div className="space-y-6">
-          <div className="h-10 w-48 animate-pulse rounded-full bg-paper" />
-          <div className="h-16 max-w-2xl animate-pulse rounded-[22px] bg-paper" />
+          <div className="skeleton h-10 w-48 rounded-full" />
+          <div className="skeleton h-16 max-w-2xl rounded-[22px]" />
+          <ListingGridSkeleton count={8} />
         </div>
       }
     >

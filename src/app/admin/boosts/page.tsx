@@ -225,7 +225,7 @@ export default function AdminBoostsPage() {
         {!ready ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="h-28 animate-pulse rounded-[24px] bg-paper" />
+              <div key={index} className="skeleton h-28 rounded-[24px]" />
             ))}
           </div>
         ) : pageItems.length ? (

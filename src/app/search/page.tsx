@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { InfiniteListingGrid } from "@/components/InfiniteListingGrid";
+import { ListingGridSkeleton } from "@/components/PageSkeleton";
 import { SearchBar } from "@/components/SearchBar";
 import { useHomeSearch } from "@/context/HomeSearchContext";
 import { embedQuery } from "@/lib/embeddings";
@@ -80,14 +81,7 @@ function SearchResults() {
       {ready && embedReady ? (
         <InfiniteListingGrid listings={listings} resetKey={resetKey} />
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div
-              key={index}
-              className="aspect-[4/5] animate-pulse rounded-[22px] bg-paper"
-            />
-          ))}
-        </div>
+        <ListingGridSkeleton count={8} />
       )}
     </div>
   );
@@ -95,18 +89,7 @@ function SearchResults() {
 
 export default function SearchPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div
-              key={index}
-              className="aspect-[4/5] animate-pulse rounded-[22px] bg-paper"
-            />
-          ))}
-        </div>
-      }
-    >
+    <Suspense fallback={<ListingGridSkeleton count={8} />}>
       <SearchResults />
     </Suspense>
   );

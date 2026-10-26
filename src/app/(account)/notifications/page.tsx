@@ -9,6 +9,7 @@ import { useNotifications } from "@/context/NotificationsContext";
 import { DeviceAlertsCard } from "@/components/DeviceAlertsCard";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { timeAgo } from "@/lib/format";
+import { goToNotificationHref } from "@/lib/notification-nav";
 import {
   markAllNotificationsRead,
   markNotificationRead,
@@ -80,7 +81,7 @@ export default function NotificationsPage() {
                   className="w-full rounded-[24px] bg-accent/10 px-4 py-4 text-left shadow-[0_0_0_1px_var(--color-line)] hover:bg-accent/15"
                   onClick={() => {
                     void markNotificationRead(item.id);
-                    router.push(item.href || "/");
+                    goToNotificationHref(router, item.href);
                   }}
                 >
                   <p className="font-medium">{item.title}</p>

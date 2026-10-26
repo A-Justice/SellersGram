@@ -97,6 +97,7 @@ function toListing(id: string, data: Record<string, unknown>, sellerId?: string)
 
 function toDoc(listing: Listing) {
   return {
+    listingId: listing.id,
     title: listing.title,
     description: listing.description,
     priceGhs: listing.priceGhs ?? null,

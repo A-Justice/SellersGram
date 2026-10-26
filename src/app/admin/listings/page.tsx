@@ -173,7 +173,7 @@ export default function AdminListingsPage() {
         {!ready ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-24 animate-pulse rounded-[24px] bg-paper" />
+              <div key={index} className="skeleton h-24 rounded-[24px]" />
             ))}
           </div>
         ) : pageItems.length ? (

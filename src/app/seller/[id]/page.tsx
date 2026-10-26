@@ -3,6 +3,7 @@
 import { BadgeCheck, MapPin, Phone } from "lucide-react";
 import { useParams } from "next/navigation";
 import { ListingGrid } from "@/components/ListingGrid";
+import { SellerPageSkeleton } from "@/components/PageSkeleton";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { useListings } from "@/lib/use-listings";
 
@@ -25,7 +26,7 @@ export default function SellerPage() {
     return <p className="py-16 text-center text-muted">Seller not found.</p>;
   }
 
-  if (!seller) return null;
+  if (!seller) return <SellerPageSkeleton />;
 
   const phone = seller.phone?.trim() || "";
   const telHref = phone ? `tel:${phone.replace(/\s/g, "")}` : null;
@@ -75,13 +76,13 @@ export default function SellerPage() {
               </div>
             </div>
 
-            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:min-w-[16rem]">
+            <div className="flex w-full gap-3 lg:w-auto lg:min-w-[16rem]">
               {telHref ? (
                 <a
                   href={telHref}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-canvas text-sm font-medium text-ink shadow-[0_0_0_1px_var(--color-line)] lg:flex-none lg:px-5"
+                  className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-canvas px-4 text-sm font-medium text-ink shadow-[0_0_0_1px_var(--color-line)] sm:px-5 lg:flex-none"
                 >
-                  <Phone className="size-4" />
+                  <Phone className="size-4 shrink-0" />
                   Call
                 </a>
               ) : null}
@@ -89,7 +90,7 @@ export default function SellerPage() {
                 <WhatsAppButton
                   phone={phone}
                   message={`Hi ${seller.name}, I saw your ads on Vendors Gram.`}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#25D366] text-sm font-medium text-white lg:flex-none lg:px-5"
+                  className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 text-sm font-medium text-white sm:px-5 lg:flex-none"
                 />
               ) : null}
             </div>

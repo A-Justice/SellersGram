@@ -81,7 +81,7 @@ export default function AdminSellersPage() {
 
       <div className="scroll-soft min-h-0 flex-1 overflow-y-auto pr-1">
         {!ready ? (
-          <div className="h-40 animate-pulse rounded-[24px] bg-paper" />
+          <div className="skeleton h-40 rounded-[24px]" />
         ) : pageItems.length ? (
           <div className="overflow-hidden rounded-[24px] bg-paper shadow-[0_0_0_1px_var(--color-line)]">
             <table className="w-full text-left text-sm">

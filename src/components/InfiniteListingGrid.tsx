@@ -51,8 +51,10 @@ export function InfiniteListingGrid({
       ) : null}
       <ListingGrid listings={visible} />
       {hasMore ? (
-        <div ref={sentinelRef} className="flex justify-center py-6">
-          <p className="text-sm text-muted">Loading more…</p>
+        <div ref={sentinelRef} className="grid grid-cols-2 gap-3 py-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="skeleton aspect-[4/5] rounded-[22px]" />
+          ))}
         </div>
       ) : null}
     </div>

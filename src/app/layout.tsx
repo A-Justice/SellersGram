@@ -15,12 +15,18 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    (process.env.NEXT_PUBLIC_APP_URL || "https://vendorsgram.com").replace(
+      /\/$/,
+      "",
+    ),
+  ),
   title: {
-    default: "Vendors Gram — Buy and sell in Ghana",
+    default: "Vendors Gram — Marketplace for Campus and Beyond",
     template: "%s · Vendors Gram",
   },
   description:
-    "Post an ad, browse listings, and chat or call the seller. Classifieds for Ghana.",
+    "Discover, buy and sell on campus and beyond. Student businesses, real people, one platform. Free to join.",
   applicationName: "Vendors Gram",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -34,6 +40,11 @@ export const metadata: Metadata = {
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Vendors Gram",
+    locale: "en_GH",
   },
 };
 

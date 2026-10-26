@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell } from "lucide-react";
 import { useNotifications } from "@/context/NotificationsContext";
 import { timeAgo } from "@/lib/format";
+import { goToNotificationHref } from "@/lib/notification-nav";
 import {
   markAllNotificationsRead,
   markNotificationRead,
@@ -34,11 +35,19 @@ export function NotificationBell() {
     };
   }, []);
 
+  function openItem(href: string, id: string) {
+    void markNotificationRead(id);
+    setOpen(false);
+    goToNotificationHref(router, href);
+  }
+
   return (
     <div ref={root} className="relative">
       <button
         type="button"
-        className="relative inline-flex rounded-full p-2.5 text-ink hover:bg-paper"
+        className={`relative inline-flex rounded-full p-2.5 text-ink hover:bg-paper ${
+          open ? "bg-paper ring-2 ring-gold/70" : ""
+        }`}
         aria-label={unread ? `${unread} notifications` : "Notifications"}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
@@ -51,7 +60,7 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-[24px] bg-paper shadow-[0_16px_40px_rgba(20,17,14,0.12),0_0_0_1px_var(--color-line)]">
+        <div className="fixed top-16 left-4 right-4 z-50 max-h-[min(70vh,28rem)] overflow-hidden rounded-[24px] bg-paper shadow-[0_16px_40px_rgba(20,17,14,0.12),0_0_0_1px_var(--color-line)] sm:absolute sm:top-full sm:left-auto sm:right-0 sm:mt-2 sm:w-[22rem] sm:max-w-[calc(100vw-2rem)]">
           <div className="flex items-center justify-between px-4 py-3">
             <p className="font-medium">Notifications</p>
             {unreadItems.length > 0 && (
@@ -64,17 +73,13 @@ export function NotificationBell() {
               </button>
             )}
           </div>
-          <ul className="select-panel-scroll max-h-[min(24rem,70vh)] overflow-y-auto overscroll-contain">
+          <ul className="select-panel-scroll max-h-[min(18rem,50vh)] overflow-y-auto overscroll-contain sm:max-h-[min(24rem,60vh)]">
             {recent.map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
                   className="w-full bg-accent/10 px-4 py-3 text-left hover:bg-accent/15"
-                  onClick={() => {
-                    void markNotificationRead(item.id);
-                    setOpen(false);
-                    router.push(item.href || "/inbox");
-                  }}
+                  onClick={() => openItem(item.href, item.id)}
                 >
                   <p className="truncate text-sm font-medium">{item.title}</p>
                   <p className="mt-0.5 line-clamp-2 text-sm text-muted">{item.body}</p>
