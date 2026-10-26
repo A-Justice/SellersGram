@@ -122,12 +122,12 @@ function AccountShellInner({ children }: { children: ReactNode }) {
 
   return (
     <AccountNavContext.Provider value={navValue}>
-      <div className="h-full overflow-hidden bg-canvas">
-        <div className="flex h-full min-h-0 px-4 py-4 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-canvas">
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-1 flex-col px-4 py-4 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6">
           <aside
-            className={`min-h-0 flex-col overflow-y-auto ${
+            className={`min-h-0 flex-col overflow-y-auto pb-4 ${
               mobileNavView ? "flex flex-1" : "hidden"
-            } lg:flex lg:flex-none`}
+            } lg:flex lg:flex-none lg:pb-0`}
           >
             <div className="flex items-center gap-2 px-1">
               <Link
@@ -174,13 +174,11 @@ function AccountShellInner({ children }: { children: ReactNode }) {
           </aside>
 
           <div
-            className={`min-h-0 flex-col overflow-hidden ${
+            className={`min-h-0 min-w-0 flex-col overflow-hidden ${
               mobileNavView ? "hidden" : "flex flex-1"
-            } lg:flex lg:flex-1`}
+            } lg:flex`}
           >
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {children}
-            </div>
+            {children}
           </div>
         </div>
       </div>

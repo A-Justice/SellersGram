@@ -16,6 +16,8 @@ export function SearchBar({
   onRegionChange,
   autoFocus = false,
   onSearched,
+  categoryId = "",
+  categoryName = "",
 }: {
   size?: "lg" | "sm";
   defaultQuery?: string;
@@ -26,6 +28,9 @@ export function SearchBar({
   onRegionChange?: (value: string) => void;
   autoFocus?: boolean;
   onSearched?: () => void;
+  /** When set, search stays inside this category (Jiji-style). */
+  categoryId?: string;
+  categoryName?: string;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,11 +59,19 @@ export function SearchBar({
     const next = new URLSearchParams();
     if (query.trim()) next.set("q", query.trim());
     if (region) next.set("region", region);
-    router.push(next.toString() ? `/search?${next}` : "/search");
+    const qs = next.toString();
+    if (categoryId) {
+      router.push(qs ? `/c/${categoryId}?${qs}` : `/c/${categoryId}`);
+    } else {
+      router.push(qs ? `/search?${qs}` : "/search");
+    }
     onSearched?.();
   }
 
   const large = size === "lg";
+  const placeholder = categoryName
+    ? `Search in ${categoryName}`
+    : "What are you looking for?";
 
   return (
     <form
@@ -75,7 +88,7 @@ export function SearchBar({
           ref={inputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="What are you looking for?"
+          placeholder={placeholder}
           className="min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-muted"
         />
       </div>

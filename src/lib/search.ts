@@ -95,10 +95,15 @@ export function searchListings(
   query: string,
   regionId = "",
   queryEmbedding?: number[] | null,
+  categoryId = "",
 ) {
-  const scoped = regionId
-    ? listings.filter((listing) => listing.regionId === regionId)
-    : listings;
+  let scoped = listings;
+  if (categoryId) {
+    scoped = scoped.filter((listing) => listing.categoryId === categoryId);
+  }
+  if (regionId) {
+    scoped = scoped.filter((listing) => listing.regionId === regionId);
+  }
   const tokens = tokenize(query);
   if (!tokens.length) return scoped;
 

@@ -78,24 +78,22 @@ function AccountContent() {
   if (!user) return <PageSkeleton />;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-      <div className="mx-auto w-full max-w-lg shrink-0 px-4 lg:px-6">
-        <AccountPageTitle
-          title="Profile"
-          subtitle={<p className="text-sm capitalize text-muted">{user.role}</p>}
-        />
-        {forceEdit ? (
-          <p className="pb-4 text-sm text-muted">
-            Add your phone, save, and we’ll take you back to finish your ad.
-          </p>
-        ) : null}
-      </div>
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="mx-auto w-full max-w-lg space-y-6 px-1 pb-28 pt-1 sm:px-2 lg:px-0 lg:pb-10">
+          <AccountPageTitle
+            title="Profile"
+            subtitle={<p className="text-sm capitalize text-muted">{user.role}</p>}
+          />
+          {forceEdit ? (
+            <p className="-mt-2 text-sm text-muted">
+              Add your phone, save, and we’ll take you back to finish your ad.
+            </p>
+          ) : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-        <div className="mx-auto max-w-lg space-y-6 px-4 lg:px-6">
           <form
             onSubmit={onSave}
-            className="space-y-3 rounded-[28px] bg-paper p-6 shadow-[0_0_0_1px_var(--color-line)]"
+            className="space-y-4 rounded-[28px] bg-paper p-5 shadow-[0_0_0_1px_var(--color-line)] sm:p-6"
           >
             <label className="block space-y-1.5">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { MessageCircle, Plus, Search, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useHomeSearch, DOCKED_SEARCH_VISIBLE } from "@/context/HomeSearchContext";
+import { categoryById } from "@/lib/categories";
 import { Logo } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
@@ -18,6 +19,9 @@ export function Header() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const isHome = pathname === "/";
   const isSearch = pathname.startsWith("/search");
+  const categoryMatch = pathname.match(/^\/c\/([^/?#]+)/);
+  const category = categoryMatch ? categoryById(categoryMatch[1]!) : undefined;
+  const isCategory = Boolean(category);
   const dockedSearchPage = (isHome || isSearch) && docked > DOCKED_SEARCH_VISIBLE;
   const hideSearch =
     pathname.startsWith("/admin") || pathname.startsWith("/login");
@@ -57,6 +61,8 @@ export function Header() {
               onRegionChange={setRegion}
               autoFocus
               onSearched={closeMobileSearch}
+              categoryId={category?.id}
+              categoryName={category?.name}
             />
           </div>
         </div>
@@ -85,11 +91,13 @@ export function Header() {
               region={region}
               onQueryChange={setQuery}
               onRegionChange={setRegion}
+              categoryId={category?.id}
+              categoryName={category?.name}
             />
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
-          {((!hideSearch && !isHome && !isSearch) || dockedSearchPage) && (
+          {((!hideSearch && !isHome && !isSearch) || dockedSearchPage || isCategory) && (
             <button
               type="button"
               aria-label="Search"

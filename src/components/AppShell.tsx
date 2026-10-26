@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <HomeSearchProvider enabled={false}>
         <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
           <Header />
-          <div className="min-h-0 flex-1 overflow-hidden pb-[calc(max(4.5rem,calc(env(safe-area-inset-bottom)+3.5rem)))] md:pb-0">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-[calc(max(4.5rem,calc(env(safe-area-inset-bottom)+3.5rem)))] md:pb-0">
             {children}
           </div>
           <BottomNav />
