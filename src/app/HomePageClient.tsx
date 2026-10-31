@@ -23,14 +23,25 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
 
   // SSR feed first; switch to realtime client data once Firestore hydrates.
   const live = ready ? clientLive : initialLive;
-  const top = live.filter(isBoosted).slice(0, 4);
+  const top = useMemo(
+    () => live.filter(isBoosted).slice(0, 4),
+    [live],
+  );
   const topIds = useMemo(() => new Set(top.map((item) => item.id)), [top]);
+  // Never repeat an ad already shown in Top Ads.
   const recommended = useMemo(
-    () => recommendListings(live, interests, user?.uid, RECOMMENDED_COUNT),
-    [live, interests, user?.uid],
+    () =>
+      recommendListings(
+        live,
+        interests,
+        user?.uid,
+        RECOMMENDED_COUNT,
+        topIds,
+      ),
+    [live, interests, user?.uid, topIds],
   );
   const showRecommended = Boolean(user && interestsReady && recommended.length);
-  // Rest of the home feed — grows as you scroll (skips ads already shown above).
+  // More ads — skip anything already shown in Top / Recommended.
   const feed = useMemo(() => {
     const skip = new Set(topIds);
     if (showRecommended) {
@@ -160,7 +171,7 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
             <div>
               <h2 className="font-display text-2xl">Recommended for you</h2>
               <p className="mt-1 text-sm text-muted">
-                From categories you browsed, then top ads and fresh picks.
+                From categories you browsed, then fresh picks.
               </p>
             </div>
           </div>
@@ -202,6 +213,7 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
           resetKey={feedResetKey}
           pageSize={8}
           showCount={false}
+          endMessage="That's all the live ads for now"
         />
       </section>
     </div>

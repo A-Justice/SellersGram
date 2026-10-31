@@ -75,14 +75,19 @@ export function recommendListings(
   interests: UserInterest[],
   uid?: string,
   limit = DEFAULT_LIMIT,
+  excludeIds?: Iterable<string>,
 ): Listing[] {
+  const excluded = new Set(excludeIds);
   const live = listings.filter(
-    (listing) => listing.status === "live" && !isOwnListing(listing, uid),
+    (listing) =>
+      listing.status === "live" &&
+      !isOwnListing(listing, uid) &&
+      !excluded.has(listing.id),
   );
   if (!live.length) return [];
 
   const target = Math.min(limit, live.length);
-  const used = new Set<string>();
+  const used = new Set<string>(excluded);
   const result: Listing[] = [];
   const seen = new Set(interests.map((item) => item.listingId));
 
