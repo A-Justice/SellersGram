@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Disputes & reports",
   description:
-    "How Vendors Gram handles buyer–seller disputes, reports, and payments made for listing boosts.",
+    "How Vendors Gram handles buyer–seller disputes, reports, and boost payments on the campus marketplace in Ghana.",
 };
 
 export default function DisputesPage() {

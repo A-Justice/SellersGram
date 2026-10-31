@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { CategoryGrid } from "@/components/CategoryGrid";
+import { HomeFaq } from "@/components/HomeFaq";
 import { InfiniteListingGrid } from "@/components/InfiniteListingGrid";
 import { ListingGrid } from "@/components/ListingGrid";
 import { ListingGridSkeleton } from "@/components/PageSkeleton";
@@ -185,9 +186,18 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
 
       <section className="grid gap-4 rounded-[28px] bg-paper p-6 shadow-[0_0_0_1px_var(--color-line)] sm:grid-cols-3 sm:p-8">
         {[
-          ["Post an ad", "Photos, price, place. A few steps and you are live."],
-          ["Talk direct", "Chat in the app or call. Meet in public."],
-          ["Stay local", "Search by region and city across Ghana."],
+          [
+            "Post an ad",
+            "Photos, price, place. A few steps and you are live — free for students and everyone.",
+          ],
+          [
+            "Talk direct",
+            "Chat in the app or call. Meet on campus or somewhere public.",
+          ],
+          [
+            "Stay local",
+            "Search by region and city across Ghana, from hostel finds to beyond campus.",
+          ],
         ].map(([title, copy]) => (
           <div key={title}>
             <h3 className="font-display text-xl">{title}</h3>
@@ -195,6 +205,8 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
           </div>
         ))}
       </section>
+
+      <HomeFaq />
 
       <section className="space-y-4">
         <div className="flex items-end justify-between">

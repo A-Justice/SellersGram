@@ -20,3 +20,20 @@ export const isFirebaseConfigured = Boolean(
 export function isDefaultFirestoreDatabase(databaseId = publicEnv.firestoreDatabase) {
   return !databaseId || databaseId === "(default)";
 }
+
+/** Hosts Google / Bing are allowed to index. Everything else (test, preview, localhost) is noindex. */
+const INDEXABLE_HOSTS = new Set(["vendorsgram.com", "www.vendorsgram.com"]);
+
+export function isIndexableHost(hostname: string) {
+  const host = hostname.toLowerCase().split(":")[0]?.replace(/\.$/, "") || "";
+  return INDEXABLE_HOSTS.has(host);
+}
+
+/** True only when this deploy's public URL is production. */
+export function isProductionSite(appUrl = publicEnv.appUrl) {
+  try {
+    return isIndexableHost(new URL(appUrl).hostname);
+  } catch {
+    return false;
+  }
+}

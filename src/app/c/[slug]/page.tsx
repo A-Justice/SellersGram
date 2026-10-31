@@ -1,123 +1,121 @@
-"use client";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { CATEGORIES, categoryById } from "@/lib/categories";
+import { isProductionSite } from "@/lib/env";
+import { getLiveListings } from "@/lib/server/listings";
+import {
+  categorySeo,
+  jsonLdScript,
+  organizationJsonLd,
+  siteOrigin,
+  websiteJsonLd,
+} from "@/lib/seo";
+import { CategoryPageClient } from "./CategoryPageClient";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-import { InfiniteListingGrid } from "@/components/InfiniteListingGrid";
-import { ListingGridSkeleton } from "@/components/PageSkeleton";
-import { SearchBar } from "@/components/SearchBar";
-import { categoryById } from "@/lib/categories";
-import { embedQuery } from "@/lib/embeddings";
-import { useHomeSearch } from "@/context/HomeSearchContext";
-import { searchListings } from "@/lib/search";
-import { useListings } from "@/lib/use-listings";
+export const revalidate = 120;
 
-function CategoryResults() {
-  const params = useParams<{ slug: string }>();
-  const searchParams = useSearchParams();
-  const category = categoryById(params.slug);
-  const q = searchParams.get("q") || "";
-  const regionParam = searchParams.get("region") || "";
-  const { live, ready } = useListings();
-  const { query, setQuery, region, setRegion } = useHomeSearch();
-  const [queryEmbedding, setQueryEmbedding] = useState<number[] | null>(null);
-  const [embedReady, setEmbedReady] = useState(!q.trim());
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
 
-  useEffect(() => {
-    setQuery(q);
-    setRegion(regionParam);
-  }, [q, regionParam, setQuery, setRegion]);
-
-  useEffect(() => {
-    const queryText = q.trim();
-    if (!queryText) {
-      setQueryEmbedding(null);
-      setEmbedReady(true);
-      return;
-    }
-    let cancelled = false;
-    setEmbedReady(false);
-    void embedQuery(queryText).then((embedding) => {
-      if (cancelled) return;
-      setQueryEmbedding(embedding);
-      setEmbedReady(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [q]);
-
-  const listings = useMemo(
-    () =>
-      searchListings(live, q, regionParam, queryEmbedding, params.slug),
-    [live, q, regionParam, queryEmbedding, params.slug],
-  );
-
-  const resetKey = `${params.slug}|${q}|${regionParam}|${embedReady}`;
-
-  if (!category) {
-    return (
-      <div className="py-16 text-center">
-        <h1 className="font-display text-3xl">Category not found</h1>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-          Category
-        </p>
-        <h1 className="mt-2 font-display text-4xl tracking-tight">
-          {category.name}
-          {regionParam ? "" : " in Ghana"}
-        </h1>
-        <p className="mt-2 text-sm text-muted">
-          {q.trim()
-            ? `${listings.length} result${listings.length === 1 ? "" : "s"} for “${q.trim()}” in ${category.name}`
-            : category.hint}
-        </p>
-        <div className="mt-5">
-          <SearchBar
-            query={query}
-            region={region}
-            onQueryChange={setQuery}
-            onRegionChange={setRegion}
-            categoryId={category.id}
-            categoryName={category.name}
-          />
-        </div>
-      </div>
-
-      {ready && embedReady ? (
-        listings.length ? (
-          <InfiniteListingGrid listings={listings} resetKey={resetKey} />
-        ) : (
-          <p className="rounded-[24px] bg-paper px-5 py-10 text-center text-sm text-muted shadow-[0_0_0_1px_var(--color-line)]">
-            {q.trim()
-              ? `No ads matched “${q.trim()}” in ${category.name}.`
-              : `No live ads in ${category.name} yet.`}
-          </p>
-        )
-      ) : (
-        <ListingGridSkeleton count={8} />
-      )}
-    </div>
-  );
+export function generateStaticParams() {
+  return CATEGORIES.map((category) => ({ slug: category.id }));
 }
 
-export default function CategoryPage() {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const category = categoryById(slug);
+  if (!category) {
+    return { title: "Category not found", robots: { index: false, follow: false } };
+  }
+
+  const { title, description, url } = categorySeo(
+    category.name,
+    category.hint,
+    category.id,
+  );
+  const indexable = isProductionSite();
+
+  return {
+    title,
+    description,
+    alternates: indexable ? { canonical: url } : undefined,
+    robots: indexable
+      ? { index: true, follow: true }
+      : { index: false, follow: false, nocache: true },
+    openGraph: {
+      type: "website",
+      url,
+      title,
+      description,
+      siteName: "Vendors Gram",
+      locale: "en_GH",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
+
+export default async function CategoryPage({ params }: PageProps) {
+  const { slug } = await params;
+  const category = categoryById(slug);
+  if (!category) notFound();
+
+  const live = await getLiveListings();
+  const initialLive = live.filter((listing) => listing.categoryId === slug);
+  const origin = siteOrigin();
+  const { title, description, url } = categorySeo(
+    category.name,
+    category.hint,
+    category.id,
+  );
+
+  const itemList =
+    initialLive.length > 0
+      ? {
+          "@type": "ItemList",
+          name: `${category.name} on Vendors Gram`,
+          description,
+          numberOfItems: Math.min(initialLive.length, 20),
+          itemListElement: initialLive.slice(0, 20).map((listing, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            url: `${origin}/listing/${listing.id}`,
+            name: listing.title,
+          })),
+        }
+      : null;
+
+  const graph = {
+    "@context": "https://schema.org",
+    "@graph": [
+      organizationJsonLd(origin),
+      websiteJsonLd(origin),
+      {
+        "@type": "CollectionPage",
+        "@id": url,
+        url,
+        name: title,
+        description,
+        isPartOf: { "@id": `${origin}/#website` },
+        about: category.name,
+        ...(itemList ? { mainEntity: itemList } : {}),
+      },
+    ],
+  };
+
   return (
-    <Suspense
-      fallback={
-        <div className="space-y-6">
-          <div className="skeleton h-10 w-48 rounded-full" />
-          <div className="skeleton h-16 max-w-2xl rounded-[22px]" />
-          <ListingGridSkeleton count={8} />
-        </div>
-      }
-    >
-      <CategoryResults />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(graph) }}
+      />
+      <CategoryPageClient slug={slug} initialLive={initialLive} />
+    </>
   );
 }

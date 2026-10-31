@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Acceptable Use Policy",
   description:
-    "Rules for using Vendors Gram — what sellers and buyers may and may not do on the platform.",
+    "Rules for using Vendors Gram — the free campus and local marketplace in Ghana. What sellers and buyers may and may not do.",
 };
 
 const sections: { title: string; body: string[] }[] = [

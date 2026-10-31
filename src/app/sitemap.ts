@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { CATEGORIES } from "@/lib/categories";
-import { publicEnv } from "@/lib/env";
+import { isProductionSite, publicEnv } from "@/lib/env";
 import { getLiveListingsForSitemap } from "@/lib/server/listings";
 
 /** Refresh live ad URLs periodically without a full redeploy. */
@@ -11,6 +11,9 @@ function origin() {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Never advertise staging URLs to crawlers.
+  if (!isProductionSite()) return [];
+
   const base = origin();
   const now = new Date();
 

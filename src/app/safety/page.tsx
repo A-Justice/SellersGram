@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { siteOrigin } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: "Stay safe when buying and selling",
+  description:
+    "Safety tips for campus and local deals on Vendors Gram — meet in public, check before you pay, prefer in-app chat, and report anything off.",
+  alternates: { canonical: `${siteOrigin()}/safety` },
+};
 
 export default function SafetyPage() {
   return (

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { publicEnv } from "@/lib/env";
+import { isProductionSite, publicEnv } from "@/lib/env";
 
 function origin() {
   return publicEnv.appUrl.replace(/\/$/, "") || "https://vendorsgram.com";
@@ -7,6 +7,17 @@ function origin() {
 
 export default function robots(): MetadataRoute.Robots {
   const base = origin();
+
+  // test.vendorsgram.com (and any non-prod deploy): block all crawlers.
+  if (!isProductionSite()) {
+    return {
+      rules: {
+        userAgent: "*",
+        disallow: "/",
+      },
+    };
+  }
+
   return {
     rules: [
       {

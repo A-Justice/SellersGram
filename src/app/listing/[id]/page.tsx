@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { categoryById } from "@/lib/categories";
-import { publicEnv } from "@/lib/env";
+import { isProductionSite, publicEnv } from "@/lib/env";
 import { formatGhs } from "@/lib/format";
 import { regionById } from "@/lib/regions";
 import { getListingById } from "@/lib/server/listings";
@@ -26,8 +26,12 @@ function listingDescription(
   const place = [listing.city, regionById(listing.regionId)?.name]
     .filter(Boolean)
     .join(", ");
-  const snippet = listing.description.replace(/\s+/g, " ").trim().slice(0, 140);
-  return [price, place, snippet].filter(Boolean).join(" · ");
+  const category = categoryById(listing.categoryId)?.name;
+  const snippet = listing.description.replace(/\s+/g, " ").trim().slice(0, 110);
+  return [price, place, category, snippet, "Vendors Gram"]
+    .filter(Boolean)
+    .join(" · ")
+    .slice(0, 160);
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -54,12 +58,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const category = categoryById(listing.categoryId)?.name;
   const title = listing.title;
   const description = listingDescription(listing);
-  const indexable = listing.status === "live";
+  const indexable = isProductionSite() && listing.status === "live";
 
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: indexable ? { canonical: url } : undefined,
     robots: indexable
       ? { index: true, follow: true }
       : { index: false, follow: false },

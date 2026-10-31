@@ -1,0 +1,140 @@
+"use client";
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { InfiniteListingGrid } from "@/components/InfiniteListingGrid";
+import { ListingGridSkeleton } from "@/components/PageSkeleton";
+import { SearchBar } from "@/components/SearchBar";
+import type { Listing } from "@/data/types";
+import { categoryById } from "@/lib/categories";
+import { embedQuery } from "@/lib/embeddings";
+import { useHomeSearch } from "@/context/HomeSearchContext";
+import { searchListings } from "@/lib/search";
+import { useListings } from "@/lib/use-listings";
+
+function CategoryResults({
+  slug,
+  initialLive,
+}: {
+  slug: string;
+  initialLive: Listing[];
+}) {
+  const searchParams = useSearchParams();
+  const category = categoryById(slug);
+  const q = searchParams.get("q") || "";
+  const regionParam = searchParams.get("region") || "";
+  const { live: clientLive, ready } = useListings();
+  const live = ready ? clientLive : initialLive;
+  const { query, setQuery, region, setRegion } = useHomeSearch();
+  const [queryEmbedding, setQueryEmbedding] = useState<number[] | null>(null);
+  const [embedReady, setEmbedReady] = useState(!q.trim());
+
+  useEffect(() => {
+    setQuery(q);
+    setRegion(regionParam);
+  }, [q, regionParam, setQuery, setRegion]);
+
+  useEffect(() => {
+    const queryText = q.trim();
+    if (!queryText) {
+      setQueryEmbedding(null);
+      setEmbedReady(true);
+      return;
+    }
+    let cancelled = false;
+    setEmbedReady(false);
+    void embedQuery(queryText).then((embedding) => {
+      if (cancelled) return;
+      setQueryEmbedding(embedding);
+      setEmbedReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [q]);
+
+  const listings = useMemo(
+    () => searchListings(live, q, regionParam, queryEmbedding, slug),
+    [live, q, regionParam, queryEmbedding, slug],
+  );
+
+  const resetKey = `${slug}|${q}|${regionParam}|${embedReady}|${ready ? "live" : "ssr"}`;
+
+  if (!category) {
+    return (
+      <div className="py-16 text-center">
+        <h1 className="font-display text-3xl">Category not found</h1>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="max-w-2xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          Category · Campus &amp; beyond
+        </p>
+        <h1 className="mt-2 font-display text-4xl tracking-tight">
+          {category.name}
+          {regionParam ? "" : " in Ghana"}
+        </h1>
+        <p className="mt-2 text-sm text-muted">
+          {q.trim()
+            ? `${listings.length} result${listings.length === 1 ? "" : "s"} for “${q.trim()}” in ${category.name}`
+            : `Buy and sell ${category.name.toLowerCase()} on Vendors Gram — ${category.hint}. Free for students and everyone.`}
+        </p>
+        <div className="mt-5">
+          <SearchBar
+            query={query}
+            region={region}
+            onQueryChange={setQuery}
+            onRegionChange={setRegion}
+            categoryId={category.id}
+            categoryName={category.name}
+          />
+        </div>
+      </div>
+
+      {ready && embedReady ? (
+        listings.length ? (
+          <InfiniteListingGrid listings={listings} resetKey={resetKey} />
+        ) : (
+          <p className="rounded-[24px] bg-paper px-5 py-10 text-center text-sm text-muted shadow-[0_0_0_1px_var(--color-line)]">
+            {q.trim()
+              ? `No ads matched “${q.trim()}” in ${category.name}.`
+              : `No live ads in ${category.name} yet.`}
+          </p>
+        )
+      ) : listings.length ? (
+        <InfiniteListingGrid
+          listings={listings}
+          resetKey={`${resetKey}|bootstrap`}
+        />
+      ) : (
+        <ListingGridSkeleton count={8} />
+      )}
+    </div>
+  );
+}
+
+export function CategoryPageClient({
+  slug,
+  initialLive,
+}: {
+  slug: string;
+  initialLive: Listing[];
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <div className="skeleton h-10 w-48 rounded-full" />
+          <div className="skeleton h-16 max-w-2xl rounded-[22px]" />
+          <ListingGridSkeleton count={8} />
+        </div>
+      }
+    >
+      <CategoryResults slug={slug} initialLive={initialLive} />
+    </Suspense>
+  );
+}
