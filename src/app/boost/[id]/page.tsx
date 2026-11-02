@@ -65,7 +65,8 @@ export default function BoostPage() {
         </p>
         <h1 className="mt-2 font-display text-4xl tracking-tight">Top Ad</h1>
         <p className="mt-2 text-sm text-muted">
-          Pay with Paystack. Your ad stays at the top of its category until the boost ends.
+          Your ad stays at the top of its category until the boost ends — easier to find
+          on Vendors Gram and in Google search.
         </p>
       </div>
       <div className="rounded-[24px] bg-paper p-5 shadow-[0_0_0_1px_var(--color-line)]">
@@ -87,7 +88,7 @@ export default function BoostPage() {
             <span>
               <span className="block font-display text-xl">{pack.label}</span>
               <span className="text-sm text-muted">
-                {paying === pack.id ? "Opening Paystack…" : "Top of category · Paystack"}
+                {paying === pack.id ? "Opening payment…" : "Featured at the top"}
               </span>
             </span>
             <span className="text-lg font-semibold">{formatGhs(pack.priceGhs)}</span>

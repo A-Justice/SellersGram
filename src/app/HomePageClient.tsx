@@ -156,15 +156,17 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
         <CategoryGrid />
       </section>
 
-      <section className="space-y-4">
-        <div className="flex items-end justify-between">
-          <h2 className="font-display text-2xl">Top Ads</h2>
-          <Link href="/search" className="text-sm font-medium text-accent">
-            See all
-          </Link>
-        </div>
-        <ListingGrid listings={top} />
-      </section>
+      {top.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-end justify-between">
+            <h2 className="font-display text-2xl">Top Ads</h2>
+            <Link href="/search" className="text-sm font-medium text-accent">
+              See all
+            </Link>
+          </div>
+          <ListingGrid listings={top} />
+        </section>
+      ) : null}
 
       {showRecommended ? (
         <section className="space-y-4">
@@ -208,26 +210,28 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
 
       <HomeFaq />
 
-      <section className="space-y-4">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="font-display text-2xl">More ads</h2>
-            <p className="mt-1 text-sm text-muted">
-              Keep scrolling — more listings load as you go.
-            </p>
+      {feed.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-end justify-between">
+            <div>
+              <h2 className="font-display text-2xl">More ads</h2>
+              <p className="mt-1 text-sm text-muted">
+                Keep scrolling — more listings load as you go.
+              </p>
+            </div>
+            <Link href="/search" className="text-sm font-medium text-accent">
+              Search
+            </Link>
           </div>
-          <Link href="/search" className="text-sm font-medium text-accent">
-            Search
-          </Link>
-        </div>
-        <InfiniteListingGrid
-          listings={feed}
-          resetKey={feedResetKey}
-          pageSize={8}
-          showCount={false}
-          endMessage="That's all the live ads for now"
-        />
-      </section>
+          <InfiniteListingGrid
+            listings={feed}
+            resetKey={feedResetKey}
+            pageSize={8}
+            showCount={false}
+            endMessage="That's all the live ads for now"
+          />
+        </section>
+      ) : null}
     </div>
   );
 }
