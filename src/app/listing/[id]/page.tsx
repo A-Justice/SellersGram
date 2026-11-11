@@ -39,11 +39,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const listing = await getListingById(id);
   const origin = siteOrigin();
   const url = `${origin}/listing/${id}`;
-  // Same-origin OG image so WhatsApp / Facebook can fetch it reliably.
+  // Same-origin PNG OG image (WhatsApp is unreliable with Azure WebP product URLs).
   const ogImage = {
     url: `${origin}/listing/${id}/opengraph-image`,
     width: 1200,
     height: 630,
+    type: "image/png",
     alt: listing?.title || "Vendors Gram listing",
   };
 

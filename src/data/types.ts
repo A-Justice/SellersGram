@@ -17,6 +17,8 @@ export type Seller = {
   reviewCount: number;
   verified: boolean;
   city: string;
+  photoUrl?: string | null;
+  bannerUrl?: string | null;
 };
 
 export type Listing = {

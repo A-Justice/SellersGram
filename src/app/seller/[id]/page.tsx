@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ListingGrid } from "@/components/ListingGrid";
 import { SellerPageSkeleton } from "@/components/PageSkeleton";
+import { RemoteImage } from "@/components/RemoteImage";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import type { Seller } from "@/data/types";
 import { db } from "@/lib/firebase";
@@ -43,6 +44,35 @@ function sellerFromProfile(
     reviewCount: Number(data.reviewCount) || 0,
     verified: Boolean(data.verified),
     city: String(data.city || "").trim() || "Ghana",
+    photoUrl: String(data.photoUrl || "").trim() || null,
+    bannerUrl: String(data.bannerUrl || "").trim() || null,
+  };
+}
+
+function mergeSeller(
+  fromListing: Seller | null,
+  fromProfile: Seller | null,
+): Seller | null {
+  if (!fromListing && !fromProfile) return null;
+  const base = fromProfile || fromListing!;
+  return {
+    ...base,
+    ...(fromListing
+      ? {
+          name: fromProfile?.name || fromListing.name,
+          phone: fromProfile?.phone || fromListing.phone,
+          city:
+            fromProfile?.city && fromProfile.city !== "Ghana"
+              ? fromProfile.city
+              : fromListing.city || fromProfile?.city || "Ghana",
+          verified: Boolean(fromProfile?.verified || fromListing.verified),
+          joinedYear: fromProfile?.joinedYear || fromListing.joinedYear,
+          rating: fromListing.rating,
+          reviewCount: fromListing.reviewCount,
+        }
+      : {}),
+    photoUrl: fromProfile?.photoUrl || null,
+    bannerUrl: fromProfile?.bannerUrl || null,
   };
 }
 
@@ -66,9 +96,8 @@ export default function SellerPage() {
       ),
     [live, id],
   );
-  // Prefer live-ad snapshot, then any ad, then users/{id} profile.
   const listingSeller = ads[0]?.seller || owned[0]?.seller || null;
-  const seller = listingSeller || profileSeller;
+  const seller = mergeSeller(listingSeller, profileSeller);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,21 +152,49 @@ export default function SellerPage() {
           seller.reviewCount === 1 ? "" : "s"
         }`
       : "New seller";
+  const photoUrl = seller.photoUrl?.trim() || "";
+  const bannerUrl = seller.bannerUrl?.trim() || "";
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-8 pb-8">
       <section className="overflow-hidden rounded-[28px] bg-paper shadow-[0_0_0_1px_var(--color-line)]">
-        <div className="relative overflow-hidden px-5 py-6 sm:px-8 sm:py-8">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(15,106,77,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom_left,_rgba(212,160,23,0.1),_transparent_50%)]"
-          />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
-              <div className="grid size-16 shrink-0 place-items-center rounded-full bg-ink font-display text-xl tracking-tight text-paper sm:size-20 sm:text-2xl">
-                {initials(seller.name)}
+        <div className="relative h-40 bg-ink sm:h-52 lg:h-56">
+          {bannerUrl ? (
+            <RemoteImage
+              src={bannerUrl}
+              alt=""
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 1024px"
+              priority
+            />
+          ) : (
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(212,160,23,0.4),_transparent_55%),radial-gradient(ellipse_at_bottom_left,_rgba(15,106,77,0.5),_transparent_50%)]"
+            />
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-paper via-paper/70 to-transparent" />
+        </div>
+
+        <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
+          <div className="-mt-12 flex flex-col gap-5 sm:-mt-14 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex min-w-0 items-end gap-4">
+              <div className="relative size-24 shrink-0 overflow-hidden rounded-full bg-ink shadow-[0_0_0_4px_var(--color-paper)] sm:size-28">
+                {photoUrl ? (
+                  <RemoteImage
+                    src={photoUrl}
+                    alt=""
+                    className="object-cover"
+                    sizes="112px"
+                    priority
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center font-display text-3xl tracking-tight text-paper sm:text-4xl">
+                    {initials(seller.name)}
+                  </div>
+                )}
               </div>
-              <div className="min-w-0 space-y-2">
+              <div className="min-w-0 space-y-2 pb-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                   Seller
                 </p>

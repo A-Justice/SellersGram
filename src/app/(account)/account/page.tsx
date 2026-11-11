@@ -6,6 +6,7 @@ import { AccountPageTitle } from "@/components/AccountShell";
 import { DeviceAlertsCard } from "@/components/DeviceAlertsCard";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { PageSkeleton } from "@/components/PageSkeleton";
+import { ProfileMediaCard } from "@/components/ProfileMediaCard";
 import { useAuth } from "@/context/AuthContext";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { formatPhoneDisplay } from "@/lib/phone";
@@ -90,6 +91,8 @@ function AccountContent() {
               Add your phone, save, and we’ll take you back to finish your ad.
             </p>
           ) : null}
+
+          <ProfileMediaCard />
 
           <form
             onSubmit={onSave}

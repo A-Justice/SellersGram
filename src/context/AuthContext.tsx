@@ -36,6 +36,8 @@ export type SessionUser = {
   email: string | null;
   phone: string;
   instagram: string;
+  photoUrl: string;
+  bannerUrl: string;
   role: UserRole;
 };
 
@@ -45,6 +47,8 @@ export type ProfileUpdates = {
   email: string;
   instagram: string;
 };
+
+export type ProfileMediaKind = "photo" | "banner";
 
 type AuthContextValue = {
   user: SessionUser | null;
@@ -59,6 +63,7 @@ type AuthContextValue = {
   confirmPhoneCode: (code: string) => Promise<{ needsName: boolean }>;
   completeProfileName: (name: string) => Promise<void>;
   updateAccountProfile: (updates: ProfileUpdates) => Promise<void>;
+  updateProfileMedia: (kind: ProfileMediaKind, url: string | null) => Promise<void>;
   clearPhoneSignIn: () => void;
   signOut: () => Promise<void>;
 };
@@ -117,6 +122,8 @@ async function ensureProfile(firebaseUser: User): Promise<{
         email: firebaseUser.email,
         phone: authPhone,
         instagram: "",
+        photoUrl: "",
+        bannerUrl: "",
         role: roleFor(firebaseUser.uid),
       },
       needsName,
@@ -138,6 +145,8 @@ async function ensureProfile(firebaseUser: User): Promise<{
     email: (existing?.email as string | null | undefined) ?? firebaseUser.email,
     phone: String(existing?.phone || authPhone || ""),
     instagram: normalizeInstagram(String(existing?.instagram || "")),
+    photoUrl: String(existing?.photoUrl || "").trim(),
+    bannerUrl: String(existing?.bannerUrl || "").trim(),
     role,
   };
 
@@ -287,6 +296,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: auth!.currentUser!.email,
             phone: auth!.currentUser!.phoneNumber || "",
             instagram: "",
+            photoUrl: "",
+            bannerUrl: "",
             role: roleFor(auth!.currentUser!.uid),
           },
     );
@@ -299,6 +310,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: auth.currentUser.email,
         phone: auth.currentUser.phoneNumber || "",
         instagram: "",
+        photoUrl: "",
+        bannerUrl: "",
         role: roleFor(auth.currentUser.uid),
       };
       await seedOwnerListings(profile).catch((error) => {
@@ -355,6 +368,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNeedsName(false);
   }, []);
 
+  const updateProfileMedia = useCallback(
+    async (kind: ProfileMediaKind, url: string | null) => {
+      if (!auth?.currentUser || !db) {
+        throw new Error("Sign in again to update your photos.");
+      }
+      const field = kind === "photo" ? "photoUrl" : "bannerUrl";
+      const next = (url || "").trim() || null;
+      await setDoc(
+        doc(db, "users", auth.currentUser.uid),
+        {
+          [field]: next,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      setUser((current) =>
+        current
+          ? {
+              ...current,
+              [field]: next || "",
+            }
+          : null,
+      );
+    },
+    [],
+  );
+
   const signOut = useCallback(async () => {
     clearPhoneSignIn();
     if (auth) await firebaseSignOut(auth);
@@ -375,6 +415,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       confirmPhoneCode,
       completeProfileName,
       updateAccountProfile,
+      updateProfileMedia,
       clearPhoneSignIn,
       signOut,
     }),
@@ -389,6 +430,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       confirmPhoneCode,
       completeProfileName,
       updateAccountProfile,
+      updateProfileMedia,
       clearPhoneSignIn,
       signOut,
     ],
