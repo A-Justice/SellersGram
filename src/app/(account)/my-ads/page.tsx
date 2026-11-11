@@ -111,17 +111,17 @@ function MyAdRow({
               showEmpty
             />
 
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               <Link
                 href={`/listing/${listing.id}`}
-                className="text-sm font-medium text-accent"
+                className="inline-flex h-8 items-center rounded-full bg-accent/10 px-3 text-xs font-semibold text-accent-dark shadow-[0_0_0_1px_rgba(15,106,77,0.22)] hover:bg-accent/15"
               >
                 View
               </Link>
-              {listing.status !== "sold" ? (
+              {listing.status !== "rejected" && listing.status !== "hidden" ? (
                 <Link
                   href={`/sell/${listing.id}`}
-                  className="text-sm text-muted hover:text-ink"
+                  className="inline-flex h-8 items-center rounded-full bg-paper px-3 text-xs font-semibold text-ink shadow-[0_0_0_1px_var(--color-line)] hover:shadow-[0_0_0_1px_var(--color-ink)]"
                 >
                   Edit
                 </Link>
@@ -129,7 +129,7 @@ function MyAdRow({
               {listing.status === "live" ? (
                 <button
                   type="button"
-                  className="text-sm text-muted hover:text-ink"
+                  className="inline-flex h-8 items-center rounded-full bg-ink px-3 text-xs font-semibold text-paper hover:bg-ink/90"
                   onClick={() => {
                     void setListingStatus(listings, listing.id, "sold");
                   }}
@@ -137,7 +137,21 @@ function MyAdRow({
                   Mark sold
                 </button>
               ) : null}
-              <DeleteAdButton listing={listing} />
+              {listing.status === "sold" ? (
+                <button
+                  type="button"
+                  className="inline-flex h-8 items-center rounded-full bg-accent px-3 text-xs font-semibold text-paper hover:bg-accent-dark"
+                  onClick={() => {
+                    void setListingStatus(listings, listing.id, "live");
+                  }}
+                >
+                  Mark available
+                </button>
+              ) : null}
+              <DeleteAdButton
+                listing={listing}
+                className="inline-flex h-8 items-center rounded-full bg-paper px-3 text-xs font-semibold text-red-700 shadow-[0_0_0_1px_rgba(185,28,28,0.28)] hover:bg-red-50"
+              />
             </div>
           </div>
 
@@ -208,7 +222,7 @@ function MyAds() {
           title="My ads"
           subtitle={
             <p className="text-sm text-muted">
-              Edit, mark sold, boost, or delete an ad.
+              Edit, mark sold or available again, boost, or delete an ad.
             </p>
           }
         />

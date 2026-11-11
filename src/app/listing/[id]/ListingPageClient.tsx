@@ -22,6 +22,7 @@ import { categoryById } from "@/lib/categories";
 import { trackListingEngagement } from "@/lib/engagement-store";
 import { startThread } from "@/lib/chat-store";
 import { boostDaysLeft, formatGhs, isBoosted, timeAgo } from "@/lib/format";
+import { setListingStatus } from "@/lib/listings-store";
 import { regionById } from "@/lib/regions";
 import { toWhatsAppLink } from "@/lib/phone";
 import { markSellerDigestSeen } from "@/lib/seller-digest";
@@ -195,25 +196,47 @@ export function ListingPageClient({
           )}
           {isMine && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {listing.status !== "sold" ? (
+              {listing.status !== "rejected" && listing.status !== "hidden" ? (
                 <Link
                   href={`/sell/${listing.id}`}
-                  className="inline-flex h-10 items-center rounded-full bg-canvas px-4 text-sm"
+                  className="inline-flex h-10 items-center rounded-full bg-paper px-4 text-sm font-semibold text-ink shadow-[0_0_0_1px_var(--color-line)] hover:shadow-[0_0_0_1px_var(--color-ink)]"
                 >
                   Edit
                 </Link>
               ) : null}
-              {listing.status === "live" && (
-                <Link
-                  href={`/boost/${listing.id}`}
-                  className="inline-flex h-10 items-center rounded-full bg-canvas px-4 text-sm"
+              {listing.status === "live" ? (
+                <>
+                  <Link
+                    href={`/boost/${listing.id}`}
+                    className="inline-flex h-10 items-center rounded-full bg-gold/20 px-4 text-sm font-semibold text-ink shadow-[0_0_0_1px_rgba(212,160,23,0.45)] hover:bg-gold/30"
+                  >
+                    Boost
+                  </Link>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center rounded-full bg-ink px-4 text-sm font-semibold text-paper hover:bg-ink/90"
+                    onClick={() => {
+                      void setListingStatus(listings, listing.id, "sold");
+                    }}
+                  >
+                    Mark sold
+                  </button>
+                </>
+              ) : null}
+              {listing.status === "sold" ? (
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center rounded-full bg-accent px-4 text-sm font-semibold text-paper hover:bg-accent-dark"
+                  onClick={() => {
+                    void setListingStatus(listings, listing.id, "live");
+                  }}
                 >
-                  Boost
-                </Link>
-              )}
+                  Mark available
+                </button>
+              ) : null}
               <DeleteAdButton
                 listing={listing}
-                className="inline-flex h-10 items-center rounded-full bg-canvas px-4 text-sm text-red-700"
+                className="inline-flex h-10 items-center rounded-full bg-paper px-4 text-sm font-semibold text-red-700 shadow-[0_0_0_1px_rgba(185,28,28,0.28)] hover:bg-red-50"
                 afterDelete={() => router.push("/my-ads")}
               />
             </div>
