@@ -118,6 +118,14 @@ function MyAdRow({
               >
                 View
               </Link>
+              {listing.status !== "sold" ? (
+                <Link
+                  href={`/sell/${listing.id}`}
+                  className="text-sm text-muted hover:text-ink"
+                >
+                  Edit
+                </Link>
+              ) : null}
               {listing.status === "live" ? (
                 <button
                   type="button"

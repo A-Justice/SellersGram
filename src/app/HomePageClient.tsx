@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { CategoryGrid } from "@/components/CategoryGrid";
 import { HomeFaq } from "@/components/HomeFaq";
+import { HomeHowItWorks } from "@/components/HomeHowItWorks";
 import { InfiniteListingGrid } from "@/components/InfiniteListingGrid";
 import { ListingGrid } from "@/components/ListingGrid";
 import { ListingGridSkeleton } from "@/components/PageSkeleton";
@@ -186,35 +187,11 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
         </section>
       ) : null}
 
-      <section className="grid gap-4 rounded-[28px] bg-paper p-6 shadow-[0_0_0_1px_var(--color-line)] sm:grid-cols-3 sm:p-8">
-        {[
-          [
-            "Post an ad",
-            "Photos, price, place. A few steps and you are live — free for students and everyone.",
-          ],
-          [
-            "Talk direct",
-            "Chat in the app or call. Meet on campus or somewhere public.",
-          ],
-          [
-            "Stay local",
-            "Search by region and city across Ghana, from hostel finds to beyond campus.",
-          ],
-        ].map(([title, copy]) => (
-          <div key={title}>
-            <h3 className="font-display text-xl">{title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{copy}</p>
-          </div>
-        ))}
-      </section>
-
-      <HomeFaq />
-
       {feed.length > 0 ? (
         <section className="space-y-4">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="font-display text-2xl">More ads</h2>
+              <h2 className="font-display text-2xl">Fresh finds</h2>
               <p className="mt-1 text-sm text-muted">
                 Keep scrolling — more listings load as you go.
               </p>
@@ -229,9 +206,21 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
             pageSize={8}
             showCount={false}
             endMessage="That's all the live ads for now"
+            midAfter={8}
+            midSlot={
+              <>
+                <HomeHowItWorks />
+                <HomeFaq />
+              </>
+            }
           />
         </section>
-      ) : null}
+      ) : (
+        <div className="space-y-12">
+          <HomeHowItWorks />
+          <HomeFaq />
+        </div>
+      )}
     </div>
   );
 }

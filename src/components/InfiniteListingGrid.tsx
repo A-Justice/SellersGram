@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Listing } from "@/data/types";
 import { ListingGrid } from "./ListingGrid";
 
@@ -12,6 +12,8 @@ export function InfiniteListingGrid({
   pageSize = LISTINGS_PAGE_SIZE,
   showCount = true,
   endMessage,
+  midSlot,
+  midAfter,
 }: {
   listings: Listing[];
   resetKey: string;
@@ -19,9 +21,14 @@ export function InfiniteListingGrid({
   showCount?: boolean;
   /** Custom end copy; defaults to a count when showCount is on. */
   endMessage?: string;
+  /** Inserted after the first batch of ads (e.g. FAQ mid-feed). */
+  midSlot?: ReactNode;
+  /** How many ads to show before midSlot. Defaults to pageSize. */
+  midAfter?: number;
 }) {
   const [visibleCount, setVisibleCount] = useState(pageSize);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const insertAt = Math.min(midAfter ?? pageSize, listings.length);
 
   useEffect(() => {
     setVisibleCount(pageSize);
@@ -58,6 +65,10 @@ export function InfiniteListingGrid({
     endMessage ??
     (showCount ? `You've seen all ${listings.length} ads` : null);
 
+  const showMid = Boolean(midSlot) && insertAt > 0 && visibleCount >= insertAt;
+  const before = showMid ? visible.slice(0, insertAt) : visible;
+  const after = showMid ? visible.slice(insertAt) : [];
+
   return (
     <div className="space-y-5">
       {showCount && listings.length > 0 ? (
@@ -65,7 +76,9 @@ export function InfiniteListingGrid({
           Showing {visible.length} of {listings.length} ads
         </p>
       ) : null}
-      <ListingGrid listings={visible} />
+      {before.length ? <ListingGrid listings={before} /> : null}
+      {showMid ? <div className="space-y-12 py-4">{midSlot}</div> : null}
+      {after.length ? <ListingGrid listings={after} /> : null}
       {hasMore ? (
         <div
           ref={sentinelRef}

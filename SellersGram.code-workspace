@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../Stallkeeper-POS"
+		}
+	],
+	"settings": {
+		"csharp-dev-tools.solutionViewer.selectedWorkspaceSolutions": [
+			"Stallkeeper.Pos.sln"
+		]
+	}
+}

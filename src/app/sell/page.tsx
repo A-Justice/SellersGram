@@ -10,6 +10,16 @@ import { Select } from "@/components/Select";
 import { useAuth } from "@/context/AuthContext";
 import { CATEGORIES, SUBCATEGORIES } from "@/lib/categories";
 import { cleanAttributes } from "@/lib/category-fields";
+import {
+  firstErrorKey,
+  LISTING_LIMITS,
+  parseListingPriceGhs,
+  validateListingContact,
+  validateListingDetails,
+  validateListingPhotos,
+  validateListingPlace,
+  type ListingFieldErrors,
+} from "@/lib/listing-form";
 import { createListing } from "@/lib/listings-store";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { REGIONS } from "@/lib/regions";
@@ -18,13 +28,15 @@ import { normalizeVideoUrlInput, parseVideoUrl } from "@/lib/video-url";
 const STEPS = ["Photos", "Details", "Place", "Contact"];
 const SELL_DRAFT_KEY = "vg-sell-draft";
 
+type ConditionValue = "" | "new" | "used";
+
 type SellDraft = {
   step: number;
   title: string;
   description: string;
   categoryId: string;
   subcategoryId: string;
-  condition: "new" | "used";
+  condition: ConditionValue;
   price: string;
   negotiable: boolean;
   contactForPrice: boolean;
@@ -34,7 +46,11 @@ type SellDraft = {
   attributes: Record<string, string>;
 };
 
-type FieldErrors = Partial<Record<string, string>>;
+function draftCondition(value: unknown): ConditionValue {
+  return value === "new" || value === "used" ? value : "";
+}
+
+type FieldErrors = ListingFieldErrors;
 
 function readDraft(): SellDraft | null {
   if (typeof window === "undefined") return null;
@@ -79,16 +95,16 @@ export default function SellPage() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [title, setTitle] = useState(draft?.title ?? "");
   const [description, setDescription] = useState(draft?.description ?? "");
-  const [categoryId, setCategoryId] = useState(draft?.categoryId ?? "phones");
-  const [subcategoryId, setSubcategoryId] = useState(
-    draft?.subcategoryId ?? "mobile-phones",
+  const [categoryId, setCategoryId] = useState(draft?.categoryId ?? "");
+  const [subcategoryId, setSubcategoryId] = useState(draft?.subcategoryId ?? "");
+  const [condition, setCondition] = useState<ConditionValue>(
+    draftCondition(draft?.condition),
   );
-  const [condition, setCondition] = useState<"new" | "used">(draft?.condition ?? "used");
   const [price, setPrice] = useState(draft?.price ?? "");
   const [negotiable, setNegotiable] = useState(draft?.negotiable ?? true);
   const [contactForPrice, setContactForPrice] = useState(draft?.contactForPrice ?? false);
-  const [regionId, setRegionId] = useState(draft?.regionId ?? "greater-accra");
-  const [city, setCity] = useState(draft?.city ?? "Accra");
+  const [regionId, setRegionId] = useState(draft?.regionId ?? "");
+  const [city, setCity] = useState(draft?.city ?? "");
   const [videoUrl, setVideoUrl] = useState(draft?.videoUrl ?? "");
   const [attributes, setAttributes] = useState<Record<string, string>>(
     draft?.attributes ?? {},
@@ -97,7 +113,18 @@ export default function SellPage() {
   const [submitPhase, setSubmitPhase] = useState<"idle" | "uploading" | "saving">("idle");
   const [submitError, setSubmitError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [focusErrorId, setFocusErrorId] = useState<string | null>(null);
   const [postedId, setPostedId] = useState<string | null>(null);
+
+  // After a step jump (e.g. submit validation), wait for the field to mount, then scroll.
+  useEffect(() => {
+    if (!focusErrorId) return;
+    const timer = window.setTimeout(() => {
+      focusField(focusErrorId);
+      setFocusErrorId(null);
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [focusErrorId, step, fieldErrors]);
 
   const profilePhone = (user?.phone || "").trim();
   const hasProfilePhone = Boolean(profilePhone);
@@ -155,44 +182,22 @@ export default function SellPage() {
   }
 
   function validateStep(current: number): FieldErrors {
-    const errors: FieldErrors = {};
-
-    if (current === 0) {
-      if (photoFiles.length === 0) {
-        errors.photos = "Add at least one photo.";
-      }
-    }
-
+    if (current === 0) return validateListingPhotos(photoFiles.length);
     if (current === 1) {
-      if (!title.trim()) errors.title = "Enter a title.";
-      if (!categoryId) errors.categoryId = "Choose a category.";
-      if (!subcategoryId) errors.subcategoryId = "Choose a subcategory.";
-      if (!condition) errors.condition = "Choose condition.";
-      if (!contactForPrice) {
-        const amount = Number(price);
-        if (!price.trim()) errors.price = "Enter a price, or choose contact for price.";
-        else if (!Number.isFinite(amount) || amount <= 0) {
-          errors.price = "Enter a valid price.";
-        }
-      }
-      if (!description.trim()) errors.description = "Add a short description.";
-      if (videoUrl.trim() && !normalizeVideoUrlInput(videoUrl)) {
-        errors.videoUrl = "Enter a valid YouTube or video link.";
-      }
+      return validateListingDetails({
+        title,
+        description,
+        categoryId,
+        subcategoryId,
+        condition,
+        price,
+        contactForPrice,
+        videoUrl,
+      });
     }
-
-    if (current === 2) {
-      if (!regionId) errors.regionId = "Choose a region.";
-      if (!city.trim()) errors.city = "Choose a city.";
-    }
-
-    if (current === 3) {
-      if (!hasProfilePhone) {
-        errors.phone = "Add a phone number on your profile before submitting.";
-      }
-    }
-
-    return errors;
+    if (current === 2) return validateListingPlace({ regionId, city });
+    if (current === 3) return validateListingContact(hasProfilePhone);
+    return {};
   }
 
   function goNext() {
@@ -200,9 +205,9 @@ export default function SellPage() {
     setFieldErrors(errors);
     setSubmitError("");
 
-    const first = Object.keys(errors)[0];
+    const first = firstErrorKey(errors);
     if (first) {
-      focusField(first);
+      setFocusErrorId(first);
       return;
     }
 
@@ -222,31 +227,33 @@ export default function SellPage() {
 
   async function submit() {
     const photoCheck = validateStep(0);
-    if (Object.keys(photoCheck).length) {
+    if (firstErrorKey(photoCheck)) {
       setStep(0);
       setFieldErrors(photoCheck);
-      focusField("photos");
+      setFocusErrorId("photos");
       return;
     }
     const detailsCheck = validateStep(1);
-    if (Object.keys(detailsCheck).length) {
+    const detailsKey = firstErrorKey(detailsCheck);
+    if (detailsKey) {
       setStep(1);
       setFieldErrors(detailsCheck);
-      focusField(Object.keys(detailsCheck)[0]);
+      setFocusErrorId(detailsKey);
       return;
     }
     const placeCheck = validateStep(2);
-    if (Object.keys(placeCheck).length) {
+    const placeKey = firstErrorKey(placeCheck);
+    if (placeKey) {
       setStep(2);
       setFieldErrors(placeCheck);
-      focusField(Object.keys(placeCheck)[0]);
+      setFocusErrorId(placeKey);
       return;
     }
     const contactCheck = validateStep(3);
-    if (Object.keys(contactCheck).length) {
+    if (firstErrorKey(contactCheck)) {
       setStep(3);
       setFieldErrors(contactCheck);
-      focusField("phone");
+      setFocusErrorId("phone");
       return;
     }
 
@@ -259,12 +266,12 @@ export default function SellPage() {
       const listing = await createListing({
         title: title.trim(),
         description: description.trim(),
-        priceGhs: contactForPrice ? null : Number(price) || 0,
+        priceGhs: parseListingPriceGhs(price, contactForPrice),
         negotiable,
         contactForPrice,
         categoryId,
         subcategoryId,
-        condition,
+        condition: condition as "new" | "used",
         regionId,
         city,
         photoUrls,
@@ -299,14 +306,14 @@ export default function SellPage() {
     setPhotoFiles([]);
     setTitle("");
     setDescription("");
-    setCategoryId("phones");
-    setSubcategoryId("mobile-phones");
-    setCondition("used");
+    setCategoryId("");
+    setSubcategoryId("");
+    setCondition("");
     setPrice("");
     setNegotiable(true);
     setContactForPrice(false);
-    setRegionId("greater-accra");
-    setCity("Accra");
+    setRegionId("");
+    setCity("");
     setVideoUrl("");
     setAttributes({});
     setFieldErrors({});
@@ -404,12 +411,14 @@ export default function SellPage() {
                 id="title"
                 label="Title"
                 error={fieldErrors.title}
+                hint={`${title.trim().length}/${LISTING_LIMITS.titleMax}`}
               >
                 <input
                   value={title}
+                  maxLength={LISTING_LIMITS.titleMax}
                   onChange={(event) => {
                     setTitle(event.target.value);
-                    if (event.target.value.trim()) {
+                    if (event.target.value.trim().length >= LISTING_LIMITS.titleMin) {
                       setFieldErrors((current) => {
                         if (!current.title) return current;
                         const next = { ...current };
@@ -425,10 +434,17 @@ export default function SellPage() {
               <Field id="categoryId" label="Category" error={fieldErrors.categoryId}>
                 <Select
                   value={categoryId}
+                  placeholder="Choose category"
                   onChange={(value) => {
                     setCategoryId(value);
-                    setSubcategoryId(SUBCATEGORIES[value][0].id);
+                    setSubcategoryId("");
                     setAttributes({});
+                    setFieldErrors((current) => {
+                      const next = { ...current };
+                      delete next.categoryId;
+                      delete next.subcategoryId;
+                      return next;
+                    });
                   }}
                   options={CATEGORIES.map((category) => ({
                     value: category.id,
@@ -443,9 +459,18 @@ export default function SellPage() {
               >
                 <Select
                   value={subcategoryId}
+                  placeholder={
+                    categoryId ? "Choose subcategory" : "Choose a category first"
+                  }
                   onChange={(value) => {
                     setSubcategoryId(value);
                     setAttributes({});
+                    setFieldErrors((current) => {
+                      if (!current.subcategoryId) return current;
+                      const next = { ...current };
+                      delete next.subcategoryId;
+                      return next;
+                    });
                   }}
                   options={(SUBCATEGORIES[categoryId] || []).map((item) => ({
                     value: item.id,
@@ -459,7 +484,15 @@ export default function SellPage() {
                     <button
                       key={value}
                       type="button"
-                      onClick={() => setCondition(value)}
+                      onClick={() => {
+                        setCondition(value);
+                        setFieldErrors((current) => {
+                          if (!current.condition) return current;
+                          const next = { ...current };
+                          delete next.condition;
+                          return next;
+                        });
+                      }}
                       className={`h-11 rounded-full capitalize ${
                         condition === value ? "bg-ink text-paper" : "bg-canvas"
                       }`}
@@ -520,12 +553,17 @@ export default function SellPage() {
                 id="description"
                 label="Description"
                 error={fieldErrors.description}
+                hint={`${description.trim().length}/${LISTING_LIMITS.descriptionMax}`}
               >
                 <textarea
                   value={description}
+                  maxLength={LISTING_LIMITS.descriptionMax}
                   onChange={(event) => {
                     setDescription(event.target.value);
-                    if (event.target.value.trim()) {
+                    if (
+                      event.target.value.trim().length >=
+                      LISTING_LIMITS.descriptionMin
+                    ) {
                       setFieldErrors((current) => {
                         if (!current.description) return current;
                         const next = { ...current };
@@ -583,10 +621,16 @@ export default function SellPage() {
               <Field id="regionId" label="Region" error={fieldErrors.regionId}>
                 <Select
                   value={regionId}
+                  placeholder="Choose region"
                   onChange={(value) => {
                     setRegionId(value);
-                    const nextRegion = REGIONS.find((item) => item.id === value);
-                    setCity(nextRegion?.cities[0] || "");
+                    setCity("");
+                    setFieldErrors((current) => {
+                      const next = { ...current };
+                      delete next.regionId;
+                      delete next.city;
+                      return next;
+                    });
                   }}
                   options={REGIONS.map((region) => ({
                     value: region.id,
@@ -597,7 +641,18 @@ export default function SellPage() {
               <Field id="city" label="City" error={fieldErrors.city}>
                 <Select
                   value={city}
-                  onChange={setCity}
+                  placeholder={
+                    regionId ? "Choose city" : "Choose a region first"
+                  }
+                  onChange={(value) => {
+                    setCity(value);
+                    setFieldErrors((current) => {
+                      if (!current.city) return current;
+                      const next = { ...current };
+                      delete next.city;
+                      return next;
+                    });
+                  }}
                   options={cities.map((item) => ({ value: item, label: item }))}
                 />
               </Field>
@@ -690,17 +745,24 @@ function Field({
   id,
   label,
   error,
+  hint,
   children,
 }: {
   id?: string;
   label: string;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div id={id ? `sell-field-${id}` : undefined} className="block space-y-2">
       <label className="block space-y-2">
-        <span className="text-sm font-medium">{label}</span>
+        <span className="flex items-baseline justify-between gap-3 text-sm font-medium">
+          <span>{label}</span>
+          {hint && !error ? (
+            <span className="font-normal text-muted">{hint}</span>
+          ) : null}
+        </span>
         {children}
       </label>
       {error ? <p className="text-xs text-red-700">{error}</p> : null}

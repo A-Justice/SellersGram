@@ -365,6 +365,34 @@ export async function createListing(
   return listing;
 }
 
+/** Seller updates (price, condition, copy, place, etc.) — keeps status / boost / photos. */
+export async function updateListingDetails(
+  listings: Listing[],
+  id: string,
+  patch: Partial<
+    Pick<
+      Listing,
+      | "title"
+      | "description"
+      | "priceGhs"
+      | "negotiable"
+      | "contactForPrice"
+      | "categoryId"
+      | "subcategoryId"
+      | "condition"
+      | "regionId"
+      | "city"
+      | "videoUrl"
+      | "attributes"
+    >
+  >,
+) {
+  const current = listings.find((listing) => listing.id === id);
+  if (!current) throw new Error("Ad not found.");
+  await upsertListing({ ...current, ...patch });
+  return { ...current, ...patch };
+}
+
 export async function deleteListing(listing: Listing, idToken: string) {
   if (!db) throw new Error("Firebase is not connected.");
 

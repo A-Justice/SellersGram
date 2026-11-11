@@ -195,6 +195,14 @@ export function ListingPageClient({
           )}
           {isMine && (
             <div className="mt-4 flex flex-wrap gap-2">
+              {listing.status !== "sold" ? (
+                <Link
+                  href={`/sell/${listing.id}`}
+                  className="inline-flex h-10 items-center rounded-full bg-canvas px-4 text-sm"
+                >
+                  Edit
+                </Link>
+              ) : null}
               {listing.status === "live" && (
                 <Link
                   href={`/boost/${listing.id}`}
