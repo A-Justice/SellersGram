@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Listing } from "@/data/types";
 import { ListingGrid } from "./ListingGrid";
 
 export const LISTINGS_PAGE_SIZE = 12;
+
+export type FeedInsert = {
+  /** Show this block after this many ads in the feed. */
+  after: number;
+  content: ReactNode;
+};
 
 export function InfiniteListingGrid({
   listings,
@@ -12,8 +18,7 @@ export function InfiniteListingGrid({
   pageSize = LISTINGS_PAGE_SIZE,
   showCount = true,
   endMessage,
-  midSlot,
-  midAfter,
+  inserts = [],
 }: {
   listings: Listing[];
   resetKey: string;
@@ -21,14 +26,19 @@ export function InfiniteListingGrid({
   showCount?: boolean;
   /** Custom end copy; defaults to a count when showCount is on. */
   endMessage?: string;
-  /** Inserted after the first batch of ads (e.g. FAQ mid-feed). */
-  midSlot?: ReactNode;
-  /** How many ads to show before midSlot. Defaults to pageSize. */
-  midAfter?: number;
+  /** Content blocks spaced through the feed (e.g. how-it-works, then FAQ). */
+  inserts?: FeedInsert[];
 }) {
   const [visibleCount, setVisibleCount] = useState(pageSize);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const insertAt = Math.min(midAfter ?? pageSize, listings.length);
+
+  const sortedInserts = useMemo(
+    () =>
+      [...inserts]
+        .filter((item) => item.after > 0)
+        .sort((a, b) => a.after - b.after),
+    [inserts],
+  );
 
   useEffect(() => {
     setVisibleCount(pageSize);
@@ -65,9 +75,42 @@ export function InfiniteListingGrid({
     endMessage ??
     (showCount ? `You've seen all ${listings.length} ads` : null);
 
-  const showMid = Boolean(midSlot) && insertAt > 0 && visibleCount >= insertAt;
-  const before = showMid ? visible.slice(0, insertAt) : visible;
-  const after = showMid ? visible.slice(insertAt) : [];
+  const segments = useMemo(() => {
+    type Segment =
+      | { type: "ads"; items: Listing[] }
+      | { type: "insert"; key: string; content: ReactNode };
+
+    const result: Segment[] = [];
+    let cursor = 0;
+
+    for (const insert of sortedInserts) {
+      // If the feed is shorter than the target, place leftover inserts at the end.
+      const threshold = exhausted
+        ? Math.min(insert.after, listings.length)
+        : insert.after;
+      if (visibleCount < threshold) break;
+
+      const at = Math.min(threshold, visible.length);
+      if (at < cursor) continue;
+
+      const chunk = visible.slice(cursor, at);
+      if (chunk.length) result.push({ type: "ads", items: chunk });
+      result.push({
+        type: "insert",
+        key: `insert-${insert.after}`,
+        content: insert.content,
+      });
+      cursor = at;
+    }
+
+    const rest = visible.slice(cursor);
+    if (rest.length) result.push({ type: "ads", items: rest });
+    else if (!result.length && visible.length) {
+      result.push({ type: "ads", items: visible });
+    }
+
+    return result;
+  }, [sortedInserts, visible, visibleCount, exhausted, listings.length]);
 
   return (
     <div className="space-y-5">
@@ -76,9 +119,15 @@ export function InfiniteListingGrid({
           Showing {visible.length} of {listings.length} ads
         </p>
       ) : null}
-      {before.length ? <ListingGrid listings={before} /> : null}
-      {showMid ? <div className="space-y-12 py-4">{midSlot}</div> : null}
-      {after.length ? <ListingGrid listings={after} /> : null}
+      {segments.map((segment, index) =>
+        segment.type === "ads" ? (
+          <ListingGrid key={`ads-${index}-${segment.items[0]?.id || index}`} listings={segment.items} />
+        ) : (
+          <div key={segment.key} className="py-4">
+            {segment.content}
+          </div>
+        ),
+      )}
       {hasMore ? (
         <div
           ref={sentinelRef}

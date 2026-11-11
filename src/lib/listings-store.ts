@@ -365,7 +365,7 @@ export async function createListing(
   return listing;
 }
 
-/** Seller updates (price, condition, copy, place, etc.) — keeps status / boost / photos. */
+/** Seller updates (price, photos, condition, copy, place, etc.) — keeps status / boost. */
 export async function updateListingDetails(
   listings: Listing[],
   id: string,
@@ -382,6 +382,7 @@ export async function updateListingDetails(
       | "condition"
       | "regionId"
       | "city"
+      | "photoUrls"
       | "videoUrl"
       | "attributes"
     >

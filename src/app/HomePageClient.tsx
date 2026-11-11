@@ -206,13 +206,10 @@ export function HomePageClient({ initialLive }: { initialLive: Listing[] }) {
             pageSize={8}
             showCount={false}
             endMessage="That's all the live ads for now"
-            midAfter={8}
-            midSlot={
-              <>
-                <HomeHowItWorks />
-                <HomeFaq />
-              </>
-            }
+            inserts={[
+              { after: 8, content: <HomeHowItWorks /> },
+              { after: 24, content: <HomeFaq /> },
+            ]}
           />
         </section>
       ) : (

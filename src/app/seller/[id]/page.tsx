@@ -1,10 +1,14 @@
 "use client";
 
 import { BadgeCheck, MapPin, Phone } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
 import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { ListingGrid } from "@/components/ListingGrid";
 import { SellerPageSkeleton } from "@/components/PageSkeleton";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import type { Seller } from "@/data/types";
+import { db } from "@/lib/firebase";
 import { isAdminSystemUid } from "@/lib/owner";
 import { useListings } from "@/lib/use-listings";
 
@@ -15,19 +19,97 @@ function initials(name: string) {
   return `${parts[0]![0] || ""}${parts[1]![0] || ""}`.toUpperCase();
 }
 
+function sellerFromProfile(
+  id: string,
+  data: Record<string, unknown> | null,
+): Seller | null {
+  if (!data) return null;
+  const name = String(data.name || "").trim();
+  if (!name) return null;
+  const createdAt = data.createdAt as { toDate?: () => Date } | string | undefined;
+  let joinedYear = new Date().getFullYear();
+  if (createdAt && typeof createdAt === "object" && createdAt.toDate) {
+    joinedYear = createdAt.toDate().getFullYear();
+  } else if (typeof createdAt === "string" && createdAt) {
+    const year = new Date(createdAt).getFullYear();
+    if (Number.isFinite(year)) joinedYear = year;
+  }
+  return {
+    id,
+    name,
+    phone: String(data.phone || "").trim(),
+    joinedYear,
+    rating: Number(data.rating) || 5,
+    reviewCount: Number(data.reviewCount) || 0,
+    verified: Boolean(data.verified),
+    city: String(data.city || "").trim() || "Ghana",
+  };
+}
+
 export default function SellerPage() {
   const { id } = useParams<{ id: string }>();
-  const { live, ready } = useListings();
-  const ads = live.filter(
-    (listing) => listing.seller.id === id || listing.sellerId === id,
+  const { listings, live, ready } = useListings();
+  const [profileSeller, setProfileSeller] = useState<Seller | null>(null);
+  const [profileReady, setProfileReady] = useState(false);
+
+  const owned = useMemo(
+    () =>
+      listings.filter(
+        (listing) => listing.seller.id === id || listing.sellerId === id,
+      ),
+    [listings, id],
   );
-  const seller = ads[0]?.seller;
+  const ads = useMemo(
+    () =>
+      live.filter(
+        (listing) => listing.seller.id === id || listing.sellerId === id,
+      ),
+    [live, id],
+  );
+  // Prefer live-ad snapshot, then any ad, then users/{id} profile.
+  const listingSeller = ads[0]?.seller || owned[0]?.seller || null;
+  const seller = listingSeller || profileSeller;
+
+  useEffect(() => {
+    let cancelled = false;
+    setProfileReady(false);
+    setProfileSeller(null);
+
+    if (!id || isAdminSystemUid(id) || !db) {
+      setProfileReady(true);
+      return;
+    }
+
+    void getDoc(doc(db, "users", id))
+      .then((snap) => {
+        if (cancelled) return;
+        setProfileSeller(
+          snap.exists()
+            ? sellerFromProfile(id, snap.data() as Record<string, unknown>)
+            : null,
+        );
+        setProfileReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProfileSeller(null);
+        setProfileReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   if (isAdminSystemUid(id)) {
     return <p className="py-16 text-center text-muted">Profile not available.</p>;
   }
 
-  if (ready && !seller) {
+  if ((!ready || !profileReady) && !seller) {
+    return <SellerPageSkeleton />;
+  }
+
+  if (ready && profileReady && !seller) {
     return <p className="py-16 text-center text-muted">Seller not found.</p>;
   }
 

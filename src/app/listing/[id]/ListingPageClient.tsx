@@ -234,7 +234,7 @@ export function ListingPageClient({
               </p>
             </div>
             <Link
-              href={`/seller/${listing.seller.id}`}
+              href={`/seller/${listing.sellerId || listing.seller.id}`}
               className="text-sm font-medium text-accent"
             >
               Profile

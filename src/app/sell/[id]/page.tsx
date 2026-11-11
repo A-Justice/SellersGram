@@ -5,17 +5,21 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CategoryAttributesForm } from "@/components/CategoryAttributesForm";
 import { PageSkeleton } from "@/components/PageSkeleton";
-import { RemoteImage } from "@/components/RemoteImage";
+import {
+  deleteListingPhotos,
+  PhotoPicker,
+  uploadListingPhotos,
+} from "@/components/PhotoPicker";
 import { Select } from "@/components/Select";
 import { useAuth } from "@/context/AuthContext";
 import { CATEGORIES, SUBCATEGORIES } from "@/lib/categories";
 import { cleanAttributes } from "@/lib/category-fields";
-import { formatGhs } from "@/lib/format";
 import {
   firstErrorKey,
   LISTING_LIMITS,
   parseListingPriceGhs,
   validateListingDetails,
+  validateListingPhotos,
   validateListingPlace,
   type ListingFieldErrors,
 } from "@/lib/listing-form";
@@ -61,7 +65,12 @@ export default function EditListingPage() {
   const [city, setCity] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [attributes, setAttributes] = useState<Record<string, string>>({});
+  const [existingUrls, setExistingUrls] = useState<string[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+  const [savePhase, setSavePhase] = useState<"idle" | "uploading" | "saving">(
+    "idle",
+  );
   const [saveError, setSaveError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [focusErrorId, setFocusErrorId] = useState<string | null>(null);
@@ -89,6 +98,8 @@ export default function EditListingPage() {
     setCity(listing.city);
     setVideoUrl(listing.videoUrl || "");
     setAttributes(listing.attributes || {});
+    setExistingUrls(listing.photoUrls || []);
+    setPhotoFiles([]);
     setHydrated(true);
   }, [listing, hydrated]);
 
@@ -101,43 +112,56 @@ export default function EditListingPage() {
     return () => window.clearTimeout(timer);
   }, [focusErrorId, fieldErrors]);
 
-  if (authLoading || !ready) return <PageSkeleton />;
+  if (authLoading || !ready) {
+    return (
+      <div className="h-full overflow-y-auto">
+        <PageSkeleton />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
-      <Gate
-        title="Sign in to edit"
-        copy="Sign in to update your ad."
-        action="Go to sign in"
-        onClick={() => router.push(`/login?next=/sell/${id}`)}
-      />
+      <div className="h-full overflow-y-auto px-4 py-6 lg:px-6">
+        <Gate
+          title="Sign in to edit"
+          copy="Sign in to update your ad."
+          action="Go to sign in"
+          onClick={() => router.push(`/login?next=/sell/${id}`)}
+        />
+      </div>
     );
   }
 
   if (!listing) {
     return (
-      <Gate
-        title="Ad not found"
-        copy="This ad may have been deleted."
-        action="My ads"
-        onClick={() => router.push("/my-ads")}
-      />
+      <div className="h-full overflow-y-auto px-4 py-6 lg:px-6">
+        <Gate
+          title="Ad not found"
+          copy="This ad may have been deleted."
+          action="My ads"
+          onClick={() => router.push("/my-ads")}
+        />
+      </div>
     );
   }
 
   if (!ownsAd) {
     return (
-      <Gate
-        title="Not your ad"
-        copy="You can only edit ads you posted."
-        action="My ads"
-        onClick={() => router.push("/my-ads")}
-      />
+      <div className="h-full overflow-y-auto px-4 py-6 lg:px-6">
+        <Gate
+          title="Not your ad"
+          copy="You can only edit ads you posted."
+          action="My ads"
+          onClick={() => router.push("/my-ads")}
+        />
+      </div>
     );
   }
 
   function validate(): FieldErrors {
     return {
+      ...validateListingPhotos(existingUrls.length + photoFiles.length),
       ...validateListingDetails({
         title,
         description,
@@ -163,7 +187,17 @@ export default function EditListingPage() {
     }
 
     setSaving(true);
+    setSavePhase(photoFiles.length ? "uploading" : "saving");
     try {
+      const uploaded = await uploadListingPhotos(photoFiles);
+      const nextPhotos = [...existingUrls, ...uploaded].slice(
+        0,
+        LISTING_LIMITS.photosMax,
+      );
+      const removed = (listing!.photoUrls || []).filter(
+        (url) => !nextPhotos.includes(url),
+      );
+      setSavePhase("saving");
       await updateListingDetails(listings, listing!.id, {
         title: title.trim(),
         description: description.trim(),
@@ -175,14 +209,18 @@ export default function EditListingPage() {
         condition: condition as "new" | "used",
         regionId,
         city,
+        photoUrls: nextPhotos,
         videoUrl: normalizeVideoUrlInput(videoUrl),
         attributes: cleanAttributes(attributes, categoryId, subcategoryId),
       });
+      const sellerId = listing!.sellerId || listing!.seller.id;
+      void deleteListingPhotos(removed, sellerId);
       router.push("/my-ads");
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Could not save changes.");
     } finally {
       setSaving(false);
+      setSavePhase("idle");
     }
   }
 
@@ -196,39 +234,43 @@ export default function EditListingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-6 px-4 py-6 lg:px-6">
+    <div className="flex h-full w-full flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto py-4 lg:py-6">
+        <div className="mx-auto max-w-xl space-y-6 px-4 lg:px-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           Edit ad
         </p>
         <h1 className="mt-2 font-display text-4xl tracking-tight">Update listing</h1>
         <p className="mt-2 text-sm text-muted">
-          Change price, condition, and details anytime. Photos stay the same.
+          Change photos, price, condition, and details anytime.
         </p>
       </div>
 
-      {listing.photoUrls[0] ? (
-        <div className="flex items-center gap-3 rounded-[24px] bg-paper p-3 shadow-[0_0_0_1px_var(--color-line)]">
-          <span className="relative h-16 w-14 shrink-0 overflow-hidden rounded-xl bg-line">
-            <RemoteImage
-              src={listing.photoUrls[0]}
-              alt=""
-              className="object-cover"
-            />
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{listing.title}</p>
-            <p className="text-xs text-muted">
-              {listing.contactForPrice
-                ? "Contact for price"
-                : formatGhs(listing.priceGhs)}{" "}
-              · {listing.condition}
-            </p>
-          </div>
-        </div>
-      ) : null}
-
       <div className="space-y-4 rounded-[28px] bg-paper p-5 shadow-[0_0_0_1px_var(--color-line)] sm:p-7">
+        <div id="edit-field-photos" className="space-y-2">
+          <p className="text-sm font-medium">Photos</p>
+          <PhotoPicker
+            existingUrls={existingUrls}
+            onExistingChange={(urls) => {
+              setExistingUrls(urls);
+              if (urls.length + photoFiles.length > 0) {
+                clearError("photos");
+              }
+            }}
+            files={photoFiles}
+            onChange={(files) => {
+              setPhotoFiles(files);
+              if (existingUrls.length + files.length > 0) {
+                clearError("photos");
+              }
+            }}
+          />
+          {fieldErrors.photos ? (
+            <p className="text-xs text-red-700">{fieldErrors.photos}</p>
+          ) : null}
+        </div>
+
         <Field
           id="title"
           label="Title"
@@ -413,24 +455,35 @@ export default function EditListingPage() {
           />
         </Field>
       </div>
+        </div>
+      </div>
 
-      {saveError ? <p className="text-sm text-red-700">{saveError}</p> : null}
-
-      <div className="flex gap-2 pb-8">
-        <Link
-          href="/my-ads"
-          className="inline-flex h-12 flex-1 items-center justify-center rounded-full bg-paper text-sm font-medium shadow-[0_0_0_1px_var(--color-line)]"
-        >
-          Cancel
-        </Link>
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => void save()}
-          className="h-12 flex-1 rounded-full bg-ink text-sm font-medium text-paper disabled:opacity-40"
-        >
-          {saving ? "Saving…" : "Save changes"}
-        </button>
+      <div className="shrink-0 border-t border-line bg-canvas py-3">
+        <div className="mx-auto max-w-xl px-4 lg:px-6">
+          {saveError ? (
+            <p className="mb-2 text-sm text-red-700">{saveError}</p>
+          ) : null}
+          <div className="flex gap-2">
+            <Link
+              href="/my-ads"
+              className="inline-flex h-12 flex-1 items-center justify-center rounded-full bg-paper text-sm font-medium shadow-[0_0_0_1px_var(--color-line)]"
+            >
+              Cancel
+            </Link>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void save()}
+              className="h-12 flex-1 rounded-full bg-ink text-sm font-medium text-paper disabled:opacity-40"
+            >
+              {saving
+                ? savePhase === "uploading"
+                  ? "Uploading photos…"
+                  : "Saving…"
+                : "Save changes"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
