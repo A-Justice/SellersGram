@@ -111,71 +111,88 @@ function profileNeedsName(firebaseUser: User, existingName?: string | null) {
   return !name || name === "Seller";
 }
 
+function sessionFromAuth(firebaseUser: User): {
+  profile: SessionUser;
+  needsName: boolean;
+} {
+  const authPhone = firebaseUser.phoneNumber || "";
+  const name = String(firebaseUser.displayName || "").trim();
+  const needsName = Boolean(authPhone) && (!name || name === "Seller");
+  return {
+    profile: {
+      uid: firebaseUser.uid,
+      name: needsName ? "" : name || "Seller",
+      email: firebaseUser.email,
+      phone: authPhone,
+      instagram: "",
+      photoUrl: "",
+      bannerUrl: "",
+      role: roleFor(firebaseUser.uid),
+    },
+    needsName,
+  };
+}
+
 async function ensureProfile(firebaseUser: User): Promise<{
   profile: SessionUser;
   needsName: boolean;
 }> {
-  const authPhone = firebaseUser.phoneNumber || "";
+  if (!db) return sessionFromAuth(firebaseUser);
 
-  if (!db) {
-    const name = String(firebaseUser.displayName || "").trim();
-    const needsName = Boolean(authPhone) && (!name || name === "Seller");
-    return {
-      profile: {
-        uid: firebaseUser.uid,
-        name: needsName ? "" : name || "Seller",
-        email: firebaseUser.email,
-        phone: authPhone,
-        instagram: "",
-        photoUrl: "",
-        bannerUrl: "",
-        role: roleFor(firebaseUser.uid),
-      },
-      needsName,
+  try {
+    const authPhone = firebaseUser.phoneNumber || "";
+    const ref = doc(db, "users", firebaseUser.uid);
+    const snap = await getDoc(ref);
+    const existing = snap.exists() ? snap.data() : null;
+    const role = roleFor(firebaseUser.uid, existing?.role);
+    const needsName = profileNeedsName(firebaseUser, existing?.name);
+    // Prefer Auth displayName over a raced placeholder write ("Seller") during signup.
+    const existingName = String(existing?.name || "").trim();
+    const authName = String(firebaseUser.displayName || "").trim();
+    const name = needsName
+      ? ""
+      : (existingName && existingName !== "Seller" ? existingName : "") ||
+        authName ||
+        existingName ||
+        "Seller";
+
+    const profile: SessionUser = {
+      uid: firebaseUser.uid,
+      name,
+      email: (existing?.email as string | null | undefined) ?? firebaseUser.email,
+      phone: String(existing?.phone || authPhone || ""),
+      instagram: normalizeInstagram(String(existing?.instagram || "")),
+      photoUrl: String(existing?.photoUrl || "").trim(),
+      bannerUrl: String(existing?.bannerUrl || "").trim(),
+      role,
     };
+
+    await setDoc(
+      ref,
+      {
+        ...(needsName ? {} : { name: profile.name }),
+        email: profile.email,
+        phone: profile.phone,
+        instagram: profile.instagram || null,
+        role: profile.role,
+        updatedAt: serverTimestamp(),
+        ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
+      },
+      { merge: true },
+    );
+
+    if (!needsName && isOwnerUid(profile.uid)) {
+      await seedOwnerListings(profile).catch((error) => {
+        console.error("Could not seed listings", error);
+      });
+    }
+
+    return { profile, needsName };
+  } catch (error) {
+    // Auth succeeded; don't leave the app signed-out if profile sync fails.
+    console.error("Could not sync user profile", error);
+    return sessionFromAuth(firebaseUser);
   }
-
-  const ref = doc(db, "users", firebaseUser.uid);
-  const snap = await getDoc(ref);
-  const existing = snap.exists() ? snap.data() : null;
-  const role = roleFor(firebaseUser.uid, existing?.role);
-  const needsName = profileNeedsName(firebaseUser, existing?.name);
-  const name = needsName
-    ? ""
-    : String(existing?.name || firebaseUser.displayName || "Seller").trim();
-
-  const profile: SessionUser = {
-    uid: firebaseUser.uid,
-    name,
-    email: (existing?.email as string | null | undefined) ?? firebaseUser.email,
-    phone: String(existing?.phone || authPhone || ""),
-    instagram: normalizeInstagram(String(existing?.instagram || "")),
-    photoUrl: String(existing?.photoUrl || "").trim(),
-    bannerUrl: String(existing?.bannerUrl || "").trim(),
-    role,
-  };
-
-  await setDoc(
-    ref,
-    {
-      ...(needsName ? {} : { name: profile.name }),
-      email: profile.email,
-      phone: profile.phone,
-      instagram: profile.instagram || null,
-      role: profile.role,
-      updatedAt: serverTimestamp(),
-      ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
-    },
-    { merge: true },
-  );
-
-  if (!needsName && isOwnerUid(profile.uid)) {
-    await seedOwnerListings(profile).catch((error) => {
-      console.error("Could not seed listings", error);
-    });
-  }
-
-  return { profile, needsName };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -198,39 +215,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
-      const result = await ensureProfile(firebaseUser);
-      setUser(result.profile);
-      setNeedsName(result.needsName);
-      setLoading(false);
+      // Keep guards (AccountShell) waiting while the Firestore profile loads.
+      setLoading(true);
+      try {
+        const result = await ensureProfile(firebaseUser);
+        setUser(result.profile);
+        setNeedsName(result.needsName);
+      } finally {
+        setLoading(false);
+      }
     });
   }, []);
 
-  const signInEmail = useCallback(async (email: string, password: string) => {
-    if (!auth) throw new Error("Firebase is not configured yet.");
-    await signInWithEmailAndPassword(auth, email, password);
+  const applySession = useCallback(async (firebaseUser: User) => {
+    setLoading(true);
+    try {
+      const result = await ensureProfile(firebaseUser);
+      setUser(result.profile);
+      setNeedsName(result.needsName);
+      return result;
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  const signInEmail = useCallback(
+    async (email: string, password: string) => {
+      if (!auth) throw new Error("Firebase is not configured yet.");
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      await applySession(cred.user);
+    },
+    [applySession],
+  );
 
   const signUpEmail = useCallback(
     async (name: string, email: string, password: string) => {
       if (!auth) throw new Error("Firebase is not configured yet.");
+      const trimmed = name.trim();
+      if (trimmed.length < 2) throw new Error("Enter your name or shop name.");
+
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(cred.user, { displayName: name.trim() });
+      await updateProfile(cred.user, { displayName: trimmed });
+
+      // Write the chosen name immediately so onAuthStateChanged can't leave "Seller".
+      if (db) {
+        await setDoc(
+          doc(db, "users", cred.user.uid),
+          {
+            name: trimmed,
+            email: cred.user.email,
+            phone: cred.user.phoneNumber || "",
+            role: roleFor(cred.user.uid),
+            updatedAt: serverTimestamp(),
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
+
+      await applySession(cred.user);
     },
-    [],
+    [applySession],
   );
 
   const signInGoogle = useCallback(async () => {
     if (!auth) throw new Error("Firebase is not configured yet.");
     const provider = new GoogleAuthProvider();
+    let cred;
     try {
-      await signInWithPopup(auth, provider);
+      cred = await signInWithPopup(auth, provider);
     } catch (error) {
       // Auth IndexedDB can race when the Google popup hides this tab; one retry usually works.
       if (!isAuthPersistenceClosingError(error)) throw error;
       await sleep(400);
-      await signInWithPopup(auth, provider);
+      cred = await signInWithPopup(auth, provider);
     }
-  }, []);
+    await applySession(cred.user);
+  }, [applySession]);
 
   const clearPhoneSignIn = useCallback(() => {
     phoneConfirmation = null;
@@ -273,12 +334,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     phoneConfirmation = null;
     clearPhoneRecaptcha();
 
-    const result = await ensureProfile(cred.user);
-    setUser(result.profile);
-    setNeedsName(result.needsName);
-    setLoading(false);
+    const result = await applySession(cred.user);
     return { needsName: result.needsName };
-  }, []);
+  }, [applySession]);
 
   const completeProfileName = useCallback(async (rawName: string) => {
     if (!auth?.currentUser) throw new Error("Sign in again to finish your profile.");

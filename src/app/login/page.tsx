@@ -25,7 +25,13 @@ function LoginForm() {
   } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/";
+  const rawNext = params.get("next") || "/";
+  const next =
+    rawNext.startsWith("/") &&
+    !rawNext.startsWith("//") &&
+    !rawNext.startsWith("/login")
+      ? rawNext
+      : "/";
 
   const [method, setMethod] = useState<Method>("email");
   const [mode, setMode] = useState<"in" | "up">("in");
@@ -46,6 +52,13 @@ function LoginForm() {
     }
   }, [loading, user, needsName]);
 
+  // Already signed in (or session restored) → leave /login.
+  useEffect(() => {
+    if (!loading && user && !needsName) {
+      router.replace(next);
+    }
+  }, [loading, user, needsName, next, router]);
+
   function switchMethod(nextMethod: Method) {
     setError("");
     setMethod(nextMethod);
@@ -58,6 +71,10 @@ function LoginForm() {
     }
   }
 
+  async function goAfterAuth() {
+    router.replace(next);
+  }
+
   async function onEmailSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
@@ -65,7 +82,8 @@ function LoginForm() {
     try {
       if (mode === "up") await signUpEmail(name, email, password);
       else await signInEmail(email, password);
-      router.push(next);
+      // Session is applied inside sign-in/sign-up before this runs.
+      await goAfterAuth();
     } catch (err) {
       setError(authErrorMessage(err));
     } finally {
@@ -99,7 +117,7 @@ function LoginForm() {
         setPhoneStep("name");
         return;
       }
-      router.push(next);
+      await goAfterAuth();
     } catch (err) {
       setError(authErrorMessage(err));
     } finally {
@@ -113,7 +131,7 @@ function LoginForm() {
     setBusy(true);
     try {
       await completeProfileName(name);
-      router.push(next);
+      await goAfterAuth();
     } catch (err) {
       setError(authErrorMessage(err));
     } finally {
@@ -216,7 +234,7 @@ function LoginForm() {
               setBusy(true);
               try {
                 await signInGoogle();
-                router.push(next);
+                await goAfterAuth();
               } catch (err) {
                 setError(authErrorMessage(err));
               } finally {
