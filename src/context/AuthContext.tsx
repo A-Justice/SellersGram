@@ -23,12 +23,17 @@ import {
   type User,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { isAuthPersistenceClosingError } from "@/lib/auth-errors";
 import { auth, db } from "@/lib/firebase";
 import { isFirebaseConfigured } from "@/lib/env";
 import { seedOwnerListings } from "@/lib/listings-store";
 import { isOwnerUid } from "@/lib/owner";
 import { toE164Phone } from "@/lib/phone";
 import type { UserRole } from "@/data/types";
+
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export type SessionUser = {
   uid: string;
@@ -216,7 +221,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInGoogle = useCallback(async () => {
     if (!auth) throw new Error("Firebase is not configured yet.");
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      // Auth IndexedDB can race when the Google popup hides this tab; one retry usually works.
+      if (!isAuthPersistenceClosingError(error)) throw error;
+      await sleep(400);
+      await signInWithPopup(auth, provider);
+    }
   }, []);
 
   const clearPhoneSignIn = useCallback(() => {

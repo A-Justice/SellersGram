@@ -23,7 +23,17 @@ const MESSAGES: Record<string, string> = {
   "auth/captcha-check-failed": "Security check failed. Refresh the page and try again.",
 };
 
+/** Firebase Auth IndexedDB race (popup / tab hide) — not a Firestore DB outage. */
+export function isAuthPersistenceClosingError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  return /Database is closing\/?hidden/i.test(message);
+}
+
 export function authErrorMessage(err: unknown) {
+  if (isAuthPersistenceClosingError(err)) {
+    return "Sign-in was interrupted. Close other tabs for this site and try again.";
+  }
+
   if (err instanceof Error && !/auth\//i.test(err.message)) {
     // Local validation messages (e.g. phone formatting)
     if (
