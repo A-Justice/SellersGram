@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { auth } from "@/lib/firebase";
 import { deleteListing } from "@/lib/listings-store";
+import { userFacingError } from "@/lib/user-errors";
 import type { Listing } from "@/data/types";
 
 export function DeleteAdButton({
@@ -32,7 +33,9 @@ export function DeleteAdButton({
       setOpen(false);
       afterDelete?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete this ad.");
+      setError(
+        userFacingError(err, "We couldn’t delete this ad. Please try again."),
+      );
     } finally {
       setBusy(false);
     }

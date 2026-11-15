@@ -25,6 +25,7 @@ import {
 } from "@/lib/listing-form";
 import { updateListingDetails } from "@/lib/listings-store";
 import { REGIONS } from "@/lib/regions";
+import { userFacingError } from "@/lib/user-errors";
 import { normalizeVideoUrlInput, parseVideoUrl } from "@/lib/video-url";
 import { useListings } from "@/lib/use-listings";
 
@@ -217,7 +218,12 @@ export default function EditListingPage() {
       void deleteListingPhotos(removed, sellerId);
       router.push("/my-ads");
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Could not save changes.");
+      setSaveError(
+        userFacingError(
+          err,
+          "We couldn’t save your changes. Check your connection and try again.",
+        ),
+      );
     } finally {
       setSaving(false);
       setSavePhase("idle");

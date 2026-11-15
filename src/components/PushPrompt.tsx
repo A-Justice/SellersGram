@@ -14,6 +14,7 @@ import {
   PUSH_DISMISSED_STORAGE_KEY,
   PUSH_PROMPT_STORAGE_KEY,
 } from "@/lib/pwa";
+import { userFacingError } from "@/lib/user-errors";
 
 /**
  * When the PWA is installed (standalone), keep push subscribed and nudge
@@ -87,7 +88,7 @@ export function PushPrompt() {
       setVisible(false);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not enable device alerts.",
+        userFacingError(err, "We couldn’t enable alerts. Please try again."),
       );
     } finally {
       setBusy(false);

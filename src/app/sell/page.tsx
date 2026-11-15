@@ -21,6 +21,7 @@ import {
   type ListingFieldErrors,
 } from "@/lib/listing-form";
 import { createListing } from "@/lib/listings-store";
+import { userFacingError } from "@/lib/user-errors";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { REGIONS } from "@/lib/regions";
 import { normalizeVideoUrlInput, parseVideoUrl } from "@/lib/video-url";
@@ -293,7 +294,12 @@ export default function SellPage() {
       setPostedId(listing.id);
       setPhotoFiles([]);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Could not submit ad.");
+      setSubmitError(
+        userFacingError(
+          err,
+          "We couldn’t submit your ad. Check your connection and try again.",
+        ),
+      );
     } finally {
       setSubmitting(false);
       setSubmitPhase("idle");

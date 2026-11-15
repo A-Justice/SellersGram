@@ -12,6 +12,7 @@ import {
   groupComments,
   subscribeListingComments,
 } from "@/lib/comments-store";
+import { userFacingError } from "@/lib/user-errors";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -46,7 +47,9 @@ function CommentComposer({
       setText("");
       onCancel?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not post comment.");
+      setError(
+        userFacingError(err, "We couldn’t post your comment. Please try again."),
+      );
     } finally {
       setBusy(false);
     }

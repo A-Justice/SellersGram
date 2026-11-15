@@ -180,7 +180,15 @@ export async function uploadListingPhotos(files: File[]): Promise<string[]> {
     return urls;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error("Photo upload timed out. Check your connection and try again.");
+      throw new Error(
+        "Photo upload timed out. Check your connection and try again — smaller photos help on slow networks.",
+      );
+    }
+    const raw = err instanceof Error ? err.message : String(err ?? "");
+    if (/failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(raw)) {
+      throw new Error(
+        "We couldn’t upload your photos. Check your internet connection and try again.",
+      );
     }
     throw err;
   } finally {

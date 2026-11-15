@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
 import { formatGhs, isBoosted } from "@/lib/format";
 import { useListings } from "@/lib/use-listings";
+import { userFacingError } from "@/lib/user-errors";
 
 export default function BoostPage() {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +53,12 @@ export default function BoostPage() {
 
       window.location.href = data.authorizationUrl;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed to start.");
+      setError(
+        userFacingError(
+          err,
+          "We couldn’t start payment. Check your connection and try again.",
+        ),
+      );
       setPaying(null);
     }
   }

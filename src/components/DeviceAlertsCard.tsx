@@ -8,6 +8,7 @@ import {
   enableDevicePush,
   pushSupported,
 } from "@/lib/push-client";
+import { userFacingError } from "@/lib/user-errors";
 
 export function DeviceAlertsCard() {
   const { user } = useAuth();
@@ -37,7 +38,9 @@ export function DeviceAlertsCard() {
         setOn(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update alerts.");
+      setError(
+        userFacingError(err, "We couldn’t update alerts. Please try again."),
+      );
     } finally {
       setBusy(false);
     }
