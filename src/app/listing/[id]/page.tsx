@@ -7,7 +7,7 @@ import { getListingById } from "@/lib/server/listings";
 import { ListingPageClient } from "./ListingPageClient";
 
 /** Cache listing HTML/metadata briefly; client still streams live Firestore updates. */
-export const revalidate = 120;
+export const revalidate = 60;
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -17,21 +17,42 @@ function siteOrigin() {
   return publicEnv.appUrl.replace(/\/$/, "") || "https://vendorsgram.com";
 }
 
+/** Facebook’s parser is happier without emoji in og:description. */
+function stripForOg(text: string) {
+  return text
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function listingDescription(
   listing: NonNullable<Awaited<ReturnType<typeof getListingById>>>,
 ) {
   const price = listing.contactForPrice
     ? "Contact for price"
-    : formatGhs(listing.priceGhs);
+    : formatGhs(listing.priceGhs).replace("GH₵", "GHS");
   const place = [listing.city, regionById(listing.regionId)?.name]
     .filter(Boolean)
     .join(", ");
   const category = categoryById(listing.categoryId)?.name;
-  const snippet = listing.description.replace(/\s+/g, " ").trim().slice(0, 110);
+  const snippet = stripForOg(listing.description).slice(0, 110);
   return [price, place, category, snippet, "Vendors Gram"]
     .filter(Boolean)
     .join(" · ")
     .slice(0, 160);
+}
+
+function listingOgImage(origin: string, id: string, alt: string) {
+  // Dedicated API path — absolute HTTPS JPEG. Meta wants og:image as an image URL object.
+  const url = `${origin}/api/og/listing/${id}`;
+  return {
+    url,
+    secureUrl: url,
+    width: 1200,
+    height: 630,
+    type: "image/jpeg" as const,
+    alt,
+  };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -39,20 +60,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const listing = await getListingById(id);
   const origin = siteOrigin();
   const url = `${origin}/listing/${id}`;
-  // Same-origin PNG OG image (photo resized via sharp; text via next/og + Inter).
-  const ogImage = {
-    url: `${origin}/listing/${id}/opengraph-image`,
-    width: 1200,
-    height: 630,
-    type: "image/png",
-    alt: listing?.title || "Vendors Gram listing",
-  };
+  const alt = listing?.title || "Vendors Gram listing";
+  const image = listingOgImage(origin, id, alt);
 
   if (!listing) {
     return {
       title: "Ad not found",
+      metadataBase: new URL(origin),
       robots: { index: false, follow: false },
-      openGraph: { images: [ogImage] },
+      openGraph: {
+        type: "website",
+        url,
+        siteName: "Vendors Gram",
+        images: [image],
+      },
+      twitter: {
+        card: "summary_large_image",
+        images: [image.url],
+      },
     };
   }
 
@@ -62,6 +87,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const indexable = isProductionSite() && listing.status === "live";
 
   return {
+    metadataBase: new URL(origin),
     title,
     description,
     alternates: indexable ? { canonical: url } : undefined,
@@ -74,16 +100,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       siteName: "Vendors Gram",
-      images: [ogImage],
       locale: "en_GH",
+      images: [image],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [ogImage.url],
+      images: [image.url],
     },
-    other: category ? { "product:category": category } : undefined,
+    // Belt-and-suspenders for crawlers that only look at flat og:* properties.
+    other: {
+      "og:image": image.url,
+      "og:image:secure_url": image.url,
+      "og:image:type": "image/jpeg",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      ...(category ? { "product:category": category } : {}),
+    },
   };
 }
 
@@ -117,10 +151,6 @@ function ListingJsonLd({
           : "https://schema.org/UsedCondition",
       areaServed: listing.city || "Ghana",
     },
-    brand: {
-      "@type": "Brand",
-      name: "Vendors Gram",
-    },
   };
 
   return (
@@ -137,9 +167,7 @@ export default async function ListingPage({ params }: PageProps) {
 
   return (
     <>
-      {listing && listing.status === "live" ? (
-        <ListingJsonLd listing={listing} />
-      ) : null}
+      {listing ? <ListingJsonLd listing={listing} /> : null}
       <ListingPageClient listingId={id} initialListing={listing} />
     </>
   );

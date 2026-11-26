@@ -1,16 +1,7 @@
 import sharp from "sharp";
 import { getListingById } from "@/lib/server/listings";
-import { formatGhs } from "@/lib/format";
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
-
-export type ListingOgPayload = {
-  title: string;
-  price: string;
-  place: string;
-  /** Small JPEG data URL for next/og (avoids huge Azure WebP in ImageResponse). */
-  photoDataUrl: string | null;
-};
 
 async function fetchPhotoBuffer(url: string): Promise<Buffer | null> {
   try {
@@ -37,52 +28,68 @@ async function fetchPhotoBuffer(url: string): Promise<Buffer | null> {
   }
 }
 
-/** Resize/convert listing photo to a compact JPEG data URL for ImageResponse. */
-export async function listingPhotoDataUrl(
-  photoUrl: string,
-): Promise<string | null> {
-  const raw = await fetchPhotoBuffer(photoUrl);
-  if (!raw) return null;
-  try {
-    const jpeg = await sharp(raw)
-      .rotate()
-      .resize(OG_SIZE.width, OG_SIZE.height, {
-        fit: "cover",
-        position: "centre",
-      })
-      .jpeg({ quality: 78, mozjpeg: true })
-      .toBuffer();
-    return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
-  } catch (error) {
-    console.error("OG sharp resize failed", error);
-    return null;
-  }
+/** Brand bar only (no text) — App Hosting has no system fonts for SVG <text>. */
+function brandBarSvg() {
+  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14110e" stop-opacity="0"/>
+      <stop offset="55%" stop-color="#14110e" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#14110e" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1200" height="630" fill="url(#fade)"/>
+  <rect x="48" y="558" width="72" height="8" rx="4" fill="#d4a017"/>
+  <rect x="132" y="558" width="220" height="8" rx="4" fill="#fffdf8" fill-opacity="0.85"/>
+</svg>`);
 }
 
-export async function getListingOgPayload(
-  listingId: string,
-): Promise<ListingOgPayload> {
+function fallbackCardSvg() {
+  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#14110e"/>
+  <rect x="48" y="48" width="72" height="8" rx="4" fill="#d4a017"/>
+  <rect x="48" y="280" width="520" height="28" rx="8" fill="#fffdf8" fill-opacity="0.92"/>
+  <rect x="48" y="328" width="360" height="20" rx="6" fill="#fffdf8" fill-opacity="0.45"/>
+  <rect x="48" y="558" width="220" height="8" rx="4" fill="#d4a017"/>
+</svg>`);
+}
+
+/**
+ * Fast JPEG for crawlers. Photo cover + brand marks (no glyph fonts).
+ * Title/price still come from og:title / og:description in the link preview.
+ */
+export async function buildListingOgJpeg(listingId: string): Promise<Buffer> {
   const listing = await getListingById(listingId);
-  const title = listing?.title || "Vendors Gram";
-  const price = listing
-    ? listing.contactForPrice
-      ? "Contact for price"
-      : formatGhs(listing.priceGhs)
-    : "Marketplace for Campus and Beyond";
-  const place = listing?.city || "Ghana";
   const photoUrl = listing?.photoUrls?.[0]?.trim();
-  const photoDataUrl = photoUrl ? await listingPhotoDataUrl(photoUrl) : null;
-  return { title, price, place, photoDataUrl };
+  const photo = photoUrl ? await fetchPhotoBuffer(photoUrl) : null;
+
+  if (photo) {
+    try {
+      return await sharp(photo)
+        .rotate()
+        .resize(OG_SIZE.width, OG_SIZE.height, {
+          fit: "cover",
+          position: "centre",
+        })
+        .composite([{ input: brandBarSvg(), top: 0, left: 0 }])
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toBuffer();
+    } catch (error) {
+      console.error("OG sharp composite failed", error);
+    }
+  }
+
+  return sharp(fallbackCardSvg()).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
 }
 
-/** Inter Regular — works in next/og (Satori) on App Hosting. */
-export async function loadOgFont(): Promise<ArrayBuffer> {
-  const response = await fetch(
-    "https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff",
-    { next: { revalidate: 86400 } },
-  );
-  if (!response.ok) {
-    throw new Error(`OG font download failed: ${response.status}`);
-  }
-  return response.arrayBuffer();
+export function ogImageResponse(jpeg: Buffer) {
+  return new Response(new Uint8Array(jpeg), {
+    headers: {
+      "Content-Type": "image/jpeg",
+      "Cache-Control":
+        "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+    },
+  });
 }
