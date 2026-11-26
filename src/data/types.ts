@@ -90,6 +90,16 @@ export type ChatThread = {
   isAdminThread?: boolean;
 };
 
+/** Product photo or a custom upload pointed at in a chat message. */
+export type ChatProductReference = {
+  listingId: string;
+  listingTitle: string;
+  imageUrl: string;
+  imageIndex: number;
+  /** True when the sender uploaded their own photo (not from an ad gallery). */
+  custom?: boolean;
+};
+
 export type ChatMessage = {
   id: string;
   threadId: string;
@@ -99,6 +109,7 @@ export type ChatMessage = {
   createdAt: string;
   editedAt?: string;
   clientPending?: boolean;
+  reference?: ChatProductReference;
 };
 
 export type Report = {

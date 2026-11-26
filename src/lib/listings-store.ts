@@ -183,6 +183,27 @@ export async function fetchListings(): Promise<Listing[]> {
   return snap.docs.map((item) => toListing(item.id, item.data(), sellerIdFromSnap(item)));
 }
 
+/** Live (and optionally one specific) ads under a seller — for chat product references. */
+export async function fetchSellerListingsForChat(
+  sellerId: string,
+  preferListingId?: string,
+): Promise<Listing[]> {
+  if (!db || !sellerId) return [];
+  const snap = await getDocs(collection(db, "listings", sellerId, "ads"));
+  const listings = snap.docs.map((item) => toListing(item.id, item.data(), sellerId));
+  const preferred = preferListingId
+    ? listings.find((item) => item.id === preferListingId)
+    : undefined;
+  const live = listings
+    .filter((item) => item.status === "live" && item.id !== preferListingId)
+    .sort(
+      (a, b) =>
+        new Date(b.publishedAt || b.createdAt).getTime() -
+        new Date(a.publishedAt || a.createdAt).getTime(),
+    );
+  return preferred ? [preferred, ...live] : live;
+}
+
 export function subscribeListings(onChange: (listings: Listing[]) => void): Unsubscribe {
   if (!db) {
     onChange([]);

@@ -15,7 +15,12 @@ import {
   where,
   writeBatch,
 } from "firebase/firestore";
-import type { ChatMessage, ChatThread, Listing } from "@/data/types";
+import type {
+  ChatMessage,
+  ChatProductReference,
+  ChatThread,
+  Listing,
+} from "@/data/types";
 import { db } from "@/lib/firebase";
 import { notifyUser } from "@/lib/notifications-store";
 import {
@@ -95,6 +100,26 @@ export function subscribeMessages(
     onChange(
       snap.docs.map((item) => {
         const data = item.data();
+        const refData = data.reference as Record<string, unknown> | undefined;
+        const imageUrl =
+          refData && typeof refData.imageUrl === "string"
+            ? String(refData.imageUrl)
+            : "";
+        const reference: ChatProductReference | undefined = imageUrl
+          ? {
+              listingId: String(refData?.listingId || ""),
+              listingTitle: String(
+                refData?.listingTitle ||
+                  (refData?.custom ? "Your photo" : "Listing"),
+              ),
+              imageUrl,
+              imageIndex:
+                typeof refData?.imageIndex === "number"
+                  ? refData.imageIndex
+                  : 0,
+              custom: Boolean(refData?.custom),
+            }
+          : undefined;
         return {
           id: item.id,
           threadId,
@@ -103,10 +128,19 @@ export function subscribeMessages(
           text: String(data.text || ""),
           createdAt: String(data.createdAt || new Date().toISOString()),
           editedAt: data.editedAt ? String(data.editedAt) : undefined,
+          reference,
         };
       }),
     );
   });
+}
+
+function lastMessagePreview(text: string, reference?: ChatProductReference) {
+  const trimmed = text.trim();
+  if (trimmed) return trimmed;
+  if (reference?.custom) return "Shared a photo";
+  if (reference) return `Photo · ${reference.listingTitle}`;
+  return "";
 }
 
 export async function startThread(
@@ -155,22 +189,37 @@ export async function sendMessage(
   thread: ChatThread,
   user: { uid: string },
   text: string,
+  reference?: ChatProductReference,
 ) {
   if (!db) throw new Error("Firebase is not connected.");
   if (thread.isAdminThread || isAdminSystemUid(thread.buyerId)) {
     throw new Error("You can’t reply to Admin notices.");
   }
+  const trimmed = text.trim();
+  if (!trimmed && !reference) return;
   const now = new Date().toISOString();
   const from: "buyer" | "seller" = user.uid === thread.sellerId ? "seller" : "buyer";
+  const preview = lastMessagePreview(trimmed, reference);
   await addDoc(collection(db, "threads", thread.id, "messages"), {
     fromUid: user.uid,
     from,
-    text,
+    text: trimmed,
+    ...(reference
+      ? {
+          reference: {
+            listingId: reference.listingId,
+            listingTitle: reference.listingTitle,
+            imageUrl: reference.imageUrl,
+            imageIndex: reference.imageIndex,
+            custom: Boolean(reference.custom),
+          },
+        }
+      : {}),
     createdAt: now,
     createdAtServer: serverTimestamp(),
   });
   await updateDoc(doc(db, "threads", thread.id), {
-    lastMessage: text,
+    lastMessage: preview,
     updatedAt: now,
   });
   const otherId = user.uid === thread.sellerId ? thread.buyerId : thread.sellerId;
@@ -179,7 +228,7 @@ export async function sendMessage(
     userId: otherId,
     fromUid: user.uid,
     title: `${senderName} · ${thread.listingTitle}`,
-    body: text,
+    body: preview,
     href: `/inbox?thread=${thread.id}`,
     threadId: thread.id,
     type: "message",
@@ -211,7 +260,9 @@ export async function deleteMessage(thread: ChatThread, message: ChatMessage, re
   const leftover = remaining.filter((item) => item.id !== message.id);
   const last = leftover[leftover.length - 1];
   await updateDoc(doc(db, "threads", thread.id), {
-    lastMessage: last?.text || "",
+    lastMessage: last
+      ? lastMessagePreview(last.text, last.reference)
+      : "",
     updatedAt: last?.createdAt || new Date().toISOString(),
   });
 }

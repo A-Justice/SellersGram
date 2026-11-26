@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Check } from "lucide-react";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ArrowLeft, Check, ImagePlus, X } from "lucide-react";
 import { AccountPageTitle } from "@/components/AccountShell";
+import { ChatProductPicker } from "@/components/ChatProductPicker";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { RemoteImage } from "@/components/RemoteImage";
 import { useAuth } from "@/context/AuthContext";
@@ -22,7 +23,11 @@ import { timeAgo } from "@/lib/format";
 import { markInboxOpened } from "@/lib/inbox-presence";
 import { markAllNotificationsRead } from "@/lib/notifications-store";
 import { ADMIN_DISPLAY_NAME, isAdminSystemUid } from "@/lib/owner";
-import type { ChatMessage, ChatThread } from "@/data/types";
+import type {
+  ChatMessage,
+  ChatProductReference,
+  ChatThread,
+} from "@/data/types";
 
 function Inbox() {
   const { user, loading } = useAuth();
@@ -33,8 +38,16 @@ function Inbox() {
   const [mobileChatOpen, setMobileChatOpen] = useState(Boolean(threadParam));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const [draftReference, setDraftReference] =
+    useState<ChatProductReference | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [unsentMessages, setUnsentMessages] = useState<
-    { id: string; text: string; createdAt: string }[]
+    {
+      id: string;
+      text: string;
+      createdAt: string;
+      reference?: ChatProductReference;
+    }[]
   >([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -90,6 +103,8 @@ function Inbox() {
 
   useEffect(() => {
     setUnsentMessages([]);
+    setDraftReference(null);
+    setPickerOpen(false);
   }, [activeId]);
 
   useEffect(() => {
@@ -101,6 +116,8 @@ function Inbox() {
             (message) =>
               message.fromUid === user.uid &&
               message.text === unsent.text &&
+              (message.reference?.imageUrl || "") ===
+                (unsent.reference?.imageUrl || "") &&
               new Date(message.createdAt).getTime() >=
                 new Date(unsent.createdAt).getTime() - 2000,
           ),
@@ -125,6 +142,7 @@ function Inbox() {
       text: item.text,
       createdAt: item.createdAt,
       clientPending: true,
+      reference: item.reference,
     }));
     return [...messages, ...optimistic];
   }, [messages, unsentMessages, active, user]);
@@ -141,14 +159,22 @@ function Inbox() {
 
   function onSend(event: FormEvent) {
     event.preventDefault();
-    if (!active || !user || !draft.trim()) return;
+    if (!active || !user) return;
     const text = draft.trim();
+    const reference = draftReference || undefined;
+    if (!text && !reference) return;
     setDraft("");
+    setDraftReference(null);
     setUnsentMessages((items) => [
       ...items,
-      { id: `pending-${Date.now()}`, text, createdAt: new Date().toISOString() },
+      {
+        id: `pending-${Date.now()}`,
+        text,
+        createdAt: new Date().toISOString(),
+        reference,
+      },
     ]);
-    void sendMessage(active, user, text);
+    void sendMessage(active, user, text, reference);
   }
 
   async function saveEdit() {
@@ -324,7 +350,45 @@ function Inbox() {
                         </form>
                       ) : (
                         <>
-                          <p>{message.text}</p>
+                          {message.reference ? (
+                            (() => {
+                              const ref = message.reference;
+                              const cardClass = `mb-2 block overflow-hidden rounded-2xl ${
+                                mine ? "bg-paper/10" : "bg-paper"
+                              }`;
+                              const body = (
+                                <>
+                                  <span className="relative block aspect-[4/3] w-full min-w-[10rem] bg-line/40">
+                                    <RemoteImage
+                                      src={ref.imageUrl}
+                                      alt={ref.listingTitle}
+                                      className="object-cover"
+                                      sizes="240px"
+                                    />
+                                  </span>
+                                  <span
+                                    className={`block truncate px-3 py-2 text-xs font-medium ${
+                                      mine ? "text-paper/90" : "text-ink"
+                                    }`}
+                                  >
+                                    {ref.custom ? "Your photo" : ref.listingTitle}
+                                  </span>
+                                </>
+                              );
+                              if (ref.custom || !ref.listingId) {
+                                return <div className={cardClass}>{body}</div>;
+                              }
+                              return (
+                                <Link
+                                  href={`/listing/${ref.listingId}`}
+                                  className={cardClass}
+                                >
+                                  {body}
+                                </Link>
+                              );
+                            })()
+                          ) : null}
+                          {message.text ? <p>{message.text}</p> : null}
                           <p
                             className={`mt-1 flex items-center gap-1 text-[10px] ${
                               mine ? "text-paper/60" : "text-muted"
@@ -370,17 +434,66 @@ function Inbox() {
             ) : (
               <form
                 onSubmit={(event) => void onSend(event)}
-                className="flex shrink-0 gap-2 border-t border-line px-5 py-4 sm:px-6"
+                className="shrink-0 space-y-2 border-t border-line px-5 py-4 sm:px-6"
               >
-                <input
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  className="field"
-                  placeholder="Write a message"
-                />
-                <button className="h-11 rounded-full bg-ink px-5 text-sm text-paper">
-                  Send
-                </button>
+                {draftReference ? (
+                  <div className="flex items-center gap-3 rounded-2xl bg-canvas px-3 py-2">
+                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-line">
+                      <RemoteImage
+                        src={draftReference.imageUrl}
+                        alt=""
+                        className="object-cover"
+                        sizes="48px"
+                      />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[11px] uppercase tracking-wide text-muted">
+                        {draftReference.custom ? "Your photo" : "Referencing"}
+                      </span>
+                      <span className="block truncate text-sm font-medium">
+                        {draftReference.custom
+                          ? "Ready to send"
+                          : draftReference.listingTitle}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Remove product reference"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-paper"
+                      onClick={() => setDraftReference(null)}
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : null}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    aria-label="Reference a product photo"
+                    title="Reference a product photo"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-canvas text-ink hover:bg-line/70"
+                    onClick={() => setPickerOpen(true)}
+                  >
+                    <ImagePlus className="size-5" strokeWidth={1.75} />
+                  </button>
+                  <input
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    className="field"
+                    placeholder={
+                      draftReference
+                        ? "Add a note about this photo…"
+                        : "Write a message"
+                    }
+                  />
+                  <button
+                    type="submit"
+                    disabled={!draft.trim() && !draftReference}
+                    className="h-11 rounded-full bg-ink px-5 text-sm text-paper disabled:opacity-40"
+                  >
+                    Send
+                  </button>
+                </div>
               </form>
             )}
           </>
@@ -390,6 +503,15 @@ function Inbox() {
           </div>
         )}
       </section>
+      {pickerOpen && active ? (
+        <ChatProductPicker
+          sellerId={active.sellerId}
+          threadListingId={active.listingId}
+          threadListingTitle={active.listingTitle}
+          onSelect={setDraftReference}
+          onClose={() => setPickerOpen(false)}
+        />
+      ) : null}
       {pending && (
         <ConfirmDialog
           heading={pending === "clear" ? "Clear this chat?" : "Delete this message?"}
