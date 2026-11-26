@@ -1,5 +1,5 @@
 import { categoryById, subcategoryById } from "@/lib/categories";
-import { REGIONS } from "@/lib/regions";
+import { isValidPlace, regionById } from "@/lib/regions";
 import { normalizeVideoUrlInput } from "@/lib/video-url";
 
 export type ListingFieldErrors = Partial<Record<string, string>>;
@@ -110,7 +110,7 @@ export function validateListingDetails(
 
 export function validateListingPlace(input: ListingPlaceInput): ListingFieldErrors {
   const errors: ListingFieldErrors = {};
-  const region = REGIONS.find((item) => item.id === input.regionId);
+  const region = regionById(input.regionId);
 
   if (!input.regionId) {
     errors.regionId = "Choose a region.";
@@ -120,9 +120,9 @@ export function validateListingPlace(input: ListingPlaceInput): ListingFieldErro
 
   const city = input.city.trim();
   if (!city) {
-    errors.city = "Choose a city.";
-  } else if (region && !region.cities.includes(city)) {
-    errors.city = "Choose a city in the selected region.";
+    errors.city = "Choose a city or campus.";
+  } else if (region && !isValidPlace(input.regionId, city)) {
+    errors.city = "Choose a city or campus in the selected region.";
   }
 
   return errors;

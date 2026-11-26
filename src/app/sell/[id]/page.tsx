@@ -24,7 +24,7 @@ import {
   type ListingFieldErrors,
 } from "@/lib/listing-form";
 import { updateListingDetails } from "@/lib/listings-store";
-import { REGIONS } from "@/lib/regions";
+import { placeOptionsForRegion, REGIONS } from "@/lib/regions";
 import { userFacingError } from "@/lib/user-errors";
 import { normalizeVideoUrlInput, parseVideoUrl } from "@/lib/video-url";
 import { useListings } from "@/lib/use-listings";
@@ -76,8 +76,8 @@ export default function EditListingPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [focusErrorId, setFocusErrorId] = useState<string | null>(null);
 
-  const cities = useMemo(
-    () => REGIONS.find((region) => region.id === regionId)?.cities || [],
+  const placeOptions = useMemo(
+    () => placeOptionsForRegion(regionId),
     [regionId],
   );
 
@@ -449,15 +449,18 @@ export default function EditListingPage() {
           />
         </Field>
 
-        <Field id="city" label="City" error={fieldErrors.city}>
+        <Field id="city" label="City or campus" error={fieldErrors.city}>
           <Select
             value={city}
+            searchable
             onChange={(value) => {
               setCity(value);
               clearError("city");
             }}
-            options={cities.map((item) => ({ value: item, label: item }))}
-            placeholder={regionId ? "Choose city" : "Choose a region first"}
+            options={placeOptions}
+            placeholder={
+              regionId ? "Choose city or campus" : "Choose a region first"
+            }
           />
         </Field>
       </div>

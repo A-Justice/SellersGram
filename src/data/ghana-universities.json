@@ -1,0 +1,976 @@
+[
+  {
+    "name": "University of Ghana (Legon)",
+    "shortName": "UG",
+    "type": "public",
+    "regionId": "greater-accra",
+    "aliases": [
+      "legon",
+      "legon campus",
+      "ug",
+      "university of ghana",
+      "university of ghana (legon)"
+    ]
+  },
+  {
+    "name": "University of Professional Studies, Accra (UPSA)",
+    "shortName": "UPSA",
+    "type": "public",
+    "regionId": "greater-accra",
+    "aliases": [
+      "professional studies",
+      "university of professional studies, accra (upsa)",
+      "ups",
+      "upsa"
+    ]
+  },
+  {
+    "name": "Ghana Institute of Management and Public Administration (GIMPA)",
+    "shortName": "GIMPA",
+    "type": "public",
+    "regionId": "greater-accra",
+    "aliases": [
+      "ghana institute of management and public administration (gimpa)",
+      "gimpa",
+      "greenhill"
+    ]
+  },
+  {
+    "name": "Ghana Communication Technology University (GCTU)",
+    "shortName": "GCTU",
+    "type": "public",
+    "regionId": "greater-accra",
+    "aliases": [
+      "gctu",
+      "gctu tesano",
+      "ghana communication technology university (gctu)",
+      "ghana tech",
+      "tesano"
+    ]
+  },
+  {
+    "name": "University of Media, Arts and Communication (UniMAC)",
+    "shortName": "UniMAC",
+    "type": "public",
+    "regionId": "greater-accra",
+    "aliases": [
+      "gij",
+      "media arts",
+      "nafti",
+      "unimac",
+      "university of media, arts and communication (unimac)"
+    ]
+  },
+  {
+    "name": "Accra Technical University (ATU)",
+    "shortName": "ATU",
+    "type": "public-technical",
+    "regionId": "greater-accra",
+    "aliases": [
+      "accra poly",
+      "accra technical",
+      "accra technical university (atu)",
+      "atu"
+    ]
+  },
+  {
+    "name": "Regional Maritime University (RMU)",
+    "shortName": "RMU",
+    "type": "public",
+    "regionId": "greater-accra",
+    "aliases": [
+      "maritime",
+      "regional maritime university (rmu)",
+      "rmu"
+    ]
+  },
+  {
+    "name": "Kwame Nkrumah University of Science and Technology (KNUST)",
+    "shortName": "KNUST",
+    "type": "public",
+    "regionId": "ashanti",
+    "aliases": [
+      "knust",
+      "kwame nkrumah",
+      "kwame nkrumah university of science and technology (knust)",
+      "science and technology",
+      "tech"
+    ]
+  },
+  {
+    "name": "Akenten Appiah-Menka University of Skills Training and Entrepreneurial Development (AAMUSTED)",
+    "shortName": "AAMUSTED",
+    "type": "public",
+    "regionId": "ashanti",
+    "aliases": [
+      "aamusted",
+      "akenten appiah-menka university of skills training and entrepreneurial development (aamusted)",
+      "appiah menka",
+      "mampong",
+      "usted"
+    ]
+  },
+  {
+    "name": "Kumasi Technical University (KsTU)",
+    "shortName": "KsTU",
+    "type": "public-technical",
+    "regionId": "ashanti",
+    "aliases": [
+      "amakom",
+      "kstu",
+      "kumasi poly",
+      "kumasi tech",
+      "kumasi technical university (kstu)"
+    ]
+  },
+  {
+    "name": "University of Cape Coast (UCC)",
+    "shortName": "UCC",
+    "type": "public",
+    "regionId": "central",
+    "aliases": [
+      "cape coast vars",
+      "cape vars",
+      "ucc",
+      "university of cape coast",
+      "university of cape coast (ucc)"
+    ]
+  },
+  {
+    "name": "University of Education, Winneba (UEW)",
+    "shortName": "UEW",
+    "type": "public",
+    "regionId": "central",
+    "aliases": [
+      "uew",
+      "university of education",
+      "university of education, winneba (uew)",
+      "winneba"
+    ]
+  },
+  {
+    "name": "Cape Coast Technical University (CCTU)",
+    "shortName": "CCTU",
+    "type": "public-technical",
+    "regionId": "central",
+    "aliases": [
+      "cape coast poly",
+      "cape coast tech",
+      "cape coast technical university (cctu)",
+      "cctu"
+    ]
+  },
+  {
+    "name": "University for Development Studies (UDS)",
+    "shortName": "UDS",
+    "type": "public",
+    "regionId": "northern",
+    "aliases": [
+      "development studies",
+      "nyankpala",
+      "tamale campus",
+      "uds",
+      "university for development studies (uds)"
+    ]
+  },
+  {
+    "name": "Tamale Technical University (TaTU)",
+    "shortName": "TaTU",
+    "type": "public-technical",
+    "regionId": "northern",
+    "aliases": [
+      "tamale poly",
+      "tamale tech",
+      "tamale technical university (tatu)",
+      "tatu"
+    ]
+  },
+  {
+    "name": "C.K. Tedam University of Technology and Applied Sciences (CKT-UTAS)",
+    "shortName": "CKT-UTAS",
+    "type": "public",
+    "regionId": "upper-east",
+    "aliases": [
+      "c.k. tedam university of technology and applied sciences (ckt-utas)",
+      "ck tedam",
+      "ckt-utas",
+      "navrongo",
+      "utas"
+    ]
+  },
+  {
+    "name": "Bolgatanga Technical University (BTU)",
+    "shortName": "BTU",
+    "type": "public-technical",
+    "regionId": "upper-east",
+    "aliases": [
+      "bolga tech",
+      "bolgatanga tech",
+      "bolgatanga technical university (btu)",
+      "btu"
+    ]
+  },
+  {
+    "name": "S.D. Dombo University of Business and Integrated Development Studies (UBIDS)",
+    "shortName": "UBIDS",
+    "type": "public",
+    "regionId": "upper-west",
+    "aliases": [
+      "s.d. dombo university of business and integrated development studies (ubids)",
+      "sd dombo",
+      "ubids",
+      "wa university"
+    ]
+  },
+  {
+    "name": "Dr. Hilla Limann Technical University (DHLTU)",
+    "shortName": "DHLTU",
+    "type": "public-technical",
+    "regionId": "upper-west",
+    "aliases": [
+      "dhltu",
+      "dr. hilla limann technical university (dhltu)",
+      "hilla limann",
+      "wa poly",
+      "wa tech"
+    ]
+  },
+  {
+    "name": "University of Mines and Technology (UMaT)",
+    "shortName": "UMaT",
+    "type": "public",
+    "regionId": "western",
+    "aliases": [
+      "mines",
+      "tarkwa",
+      "umat",
+      "university of mines and technology (umat)"
+    ]
+  },
+  {
+    "name": "Takoradi Technical University (TTU)",
+    "shortName": "TTU",
+    "type": "public-technical",
+    "regionId": "western",
+    "aliases": [
+      "t-poly",
+      "takoradi poly",
+      "takoradi tech",
+      "takoradi technical university (ttu)",
+      "ttu"
+    ]
+  },
+  {
+    "name": "University of Health and Allied Sciences (UHAS)",
+    "shortName": "UHAS",
+    "type": "public",
+    "regionId": "volta",
+    "aliases": [
+      "health and allied",
+      "sokode",
+      "uhas",
+      "university of health and allied sciences (uhas)"
+    ]
+  },
+  {
+    "name": "Ho Technical University (HTU)",
+    "shortName": "HTU",
+    "type": "public-technical",
+    "regionId": "volta",
+    "aliases": [
+      "ho poly",
+      "ho tech",
+      "ho technical university (htu)",
+      "htu"
+    ]
+  },
+  {
+    "name": "University of Energy and Natural Resources (UENR)",
+    "shortName": "UENR",
+    "type": "public",
+    "regionId": "bono",
+    "aliases": [
+      "energy",
+      "sunyani uni",
+      "uenr",
+      "university of energy and natural resources (uenr)"
+    ]
+  },
+  {
+    "name": "Sunyani Technical University (STU)",
+    "shortName": "STU",
+    "type": "public-technical",
+    "regionId": "bono",
+    "aliases": [
+      "stu",
+      "sunyani poly",
+      "sunyani tech",
+      "sunyani technical university (stu)"
+    ]
+  },
+  {
+    "name": "University of Environment and Sustainable Development (UESD)",
+    "shortName": "UESD",
+    "type": "public",
+    "regionId": "eastern",
+    "aliases": [
+      "environment",
+      "somanya",
+      "uesd",
+      "university of environment and sustainable development (uesd)"
+    ]
+  },
+  {
+    "name": "Koforidua Technical University (KTU)",
+    "shortName": "KTU",
+    "type": "public-technical",
+    "regionId": "eastern",
+    "aliases": [
+      "koforidua poly",
+      "koforidua tech",
+      "koforidua technical university (ktu)",
+      "ktu"
+    ]
+  },
+  {
+    "name": "Academic City University",
+    "shortName": "ACity",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "academic city",
+      "academic city university",
+      "acity",
+      "haatso"
+    ]
+  },
+  {
+    "name": "Accra Metropolitan University",
+    "shortName": "AMU",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "accra metropolitan university",
+      "amu"
+    ]
+  },
+  {
+    "name": "African University of Communication and Business",
+    "shortName": "AUCB",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "african university of communication and business",
+      "aucb"
+    ]
+  },
+  {
+    "name": "Central University",
+    "shortName": "Central",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "central",
+      "central university",
+      "miotso"
+    ]
+  },
+  {
+    "name": "Ensign Global University",
+    "shortName": "Ensign",
+    "type": "private",
+    "regionId": "eastern",
+    "aliases": [
+      "ensign",
+      "ensign global university"
+    ]
+  },
+  {
+    "name": "Entrance University of Health Sciences",
+    "shortName": "Entrance",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "entrance",
+      "entrance university of health sciences"
+    ]
+  },
+  {
+    "name": "Family Health University",
+    "shortName": "FHU",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "family health university",
+      "fhu"
+    ]
+  },
+  {
+    "name": "Heritage Christian University",
+    "shortName": "HCU",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "hcu",
+      "heritage christian",
+      "heritage christian university"
+    ]
+  },
+  {
+    "name": "Methodist University Ghana",
+    "shortName": "MUG",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "dansoman campus",
+      "methodist university",
+      "methodist university ghana",
+      "mug"
+    ]
+  },
+  {
+    "name": "Nobel International Business University",
+    "shortName": "NIBU",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "nibu",
+      "nobel international business university"
+    ]
+  },
+  {
+    "name": "Pentecost University",
+    "shortName": "Pentecost",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "pent vars",
+      "pentecost",
+      "pentecost university",
+      "sowutuom"
+    ]
+  },
+  {
+    "name": "Thrivus University for Biomedical Science and Technology",
+    "shortName": "Thrivus",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "thrivus",
+      "thrivus university for biomedical science and technology"
+    ]
+  },
+  {
+    "name": "Trinity Theological Seminary, Legon",
+    "shortName": "TTS",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "trinity theological seminary, legon",
+      "tts"
+    ]
+  },
+  {
+    "name": "University of Gold Coast",
+    "shortName": "UGC",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "ugc",
+      "university of gold coast"
+    ]
+  },
+  {
+    "name": "Valley View University",
+    "shortName": "VVU",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "oyibi",
+      "valley view",
+      "valley view university",
+      "vvu"
+    ]
+  },
+  {
+    "name": "Ashesi University",
+    "shortName": "Ashesi",
+    "type": "private",
+    "regionId": "eastern",
+    "aliases": [
+      "ashesi",
+      "ashesi university",
+      "berekuso"
+    ]
+  },
+  {
+    "name": "All Nations University",
+    "shortName": "ANU",
+    "type": "private",
+    "regionId": "eastern",
+    "aliases": [
+      "all nations",
+      "all nations university",
+      "anu"
+    ]
+  },
+  {
+    "name": "Akrofi-Christaller Institute of Theology, Mission and Culture",
+    "shortName": "ACI",
+    "type": "private",
+    "regionId": "eastern",
+    "aliases": [
+      "aci",
+      "akrofi-christaller institute of theology, mission and culture"
+    ]
+  },
+  {
+    "name": "Presbyterian University",
+    "shortName": "Presbyterian",
+    "type": "private",
+    "regionId": "eastern",
+    "aliases": [
+      "presbyterian",
+      "presbyterian university"
+    ]
+  },
+  {
+    "name": "Christian Service University",
+    "shortName": "CSU",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "christian service",
+      "christian service university",
+      "csu",
+      "csuc"
+    ]
+  },
+  {
+    "name": "Garden City University",
+    "shortName": "GCU",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "garden city",
+      "garden city university",
+      "gcu",
+      "gcuc"
+    ]
+  },
+  {
+    "name": "Catholic University of Ghana",
+    "shortName": "CUG",
+    "type": "private",
+    "regionId": "bono",
+    "aliases": [
+      "catholic university",
+      "catholic university of ghana",
+      "cug",
+      "fiapre"
+    ]
+  },
+  {
+    "name": "KAAF University (Fetteh Kakraba)",
+    "shortName": "KAAF",
+    "type": "private",
+    "regionId": "central",
+    "aliases": [
+      "fetteh",
+      "fetteh kakraba",
+      "kaaf",
+      "kaaf university (fetteh kakraba)"
+    ]
+  },
+  {
+    "name": "KAAF University (Darkuman)",
+    "shortName": "KAAF",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "darkuman",
+      "fetteh",
+      "kaaf",
+      "kaaf university (darkuman)"
+    ]
+  },
+  {
+    "name": "KNUTSFORD University (East Legon)",
+    "shortName": "Knutsford",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "east legon",
+      "knutsford",
+      "knutsford university (east legon)"
+    ]
+  },
+  {
+    "name": "KNUTSFORD University (Kumasi)",
+    "shortName": "Knutsford",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "knutsford",
+      "knutsford university (kumasi)",
+      "kumasi"
+    ]
+  },
+  {
+    "name": "Accra Institute of Technology (AIT)",
+    "shortName": "AIT",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "accra institute of technology",
+      "accra institute of technology (ait)",
+      "ait"
+    ]
+  },
+  {
+    "name": "African University College of Communications (AUCC)",
+    "shortName": "AUCC",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "african university college of communications (aucc)",
+      "aucc"
+    ]
+  },
+  {
+    "name": "Anglican University College of Technology (Kumasi)",
+    "shortName": "ANG.UTECH",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "ang.utech",
+      "anglican university college of technology (kumasi)",
+      "kumasi"
+    ]
+  },
+  {
+    "name": "Anglican University College of Technology (Nkoranza)",
+    "shortName": "ANG.UTECH",
+    "type": "private",
+    "regionId": "bono-east",
+    "aliases": [
+      "ang.utech",
+      "anglican university college of technology (nkoranza)",
+      "nkoranza"
+    ]
+  },
+  {
+    "name": "BlueCrest College",
+    "shortName": "BlueCrest",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "bluecrest",
+      "bluecrest college",
+      "niit"
+    ]
+  },
+  {
+    "name": "China Europe International Business School (CEIBS Africa)",
+    "shortName": "CEIBS",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "ceibs",
+      "ceibs africa",
+      "china europe international business school (ceibs africa)"
+    ]
+  },
+  {
+    "name": "Christ Apostolic University College",
+    "shortName": "CAUC",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "cauc",
+      "christ apostolic university college"
+    ]
+  },
+  {
+    "name": "Data Link Institute of Business and Technology",
+    "shortName": "DLIBT",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "data link institute of business and technology",
+      "dlibt"
+    ]
+  },
+  {
+    "name": "Dominion University College",
+    "shortName": "Dominion",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "dominion",
+      "dominion university college"
+    ]
+  },
+  {
+    "name": "Evangelical Presbyterian University College",
+    "shortName": "EPUC",
+    "type": "private",
+    "regionId": "volta",
+    "aliases": [
+      "epuc",
+      "evangelical presbyterian university college"
+    ]
+  },
+  {
+    "name": "Ghana Baptist University College",
+    "shortName": "GBUC",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "gbuc",
+      "ghana baptist university college"
+    ]
+  },
+  {
+    "name": "Islamic University College, Ghana",
+    "shortName": "IUCG",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "islamic university",
+      "islamic university college, ghana",
+      "iucg"
+    ]
+  },
+  {
+    "name": "Jayee University College",
+    "shortName": "Jayee",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "jayee",
+      "jayee university college"
+    ]
+  },
+  {
+    "name": "Lancaster University Ghana",
+    "shortName": "LUG",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "east legon lancaster",
+      "lancaster",
+      "lancaster university ghana",
+      "lug"
+    ]
+  },
+  {
+    "name": "Maranatha University College",
+    "shortName": "MUC",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "maranatha university college",
+      "muc"
+    ]
+  },
+  {
+    "name": "Mountcrest University College",
+    "shortName": "MCUC",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "mcuc",
+      "mountcrest university college"
+    ]
+  },
+  {
+    "name": "Perez University College",
+    "shortName": "Perez",
+    "type": "private",
+    "regionId": "central",
+    "aliases": [
+      "perez",
+      "perez university college",
+      "winneba perez"
+    ]
+  },
+  {
+    "name": "Radford University College",
+    "shortName": "Radford",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "radford",
+      "radford university college"
+    ]
+  },
+  {
+    "name": "Regent University College of Science and Technology",
+    "shortName": "Regent",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "regent",
+      "regent university college of science and technology"
+    ]
+  },
+  {
+    "name": "Spiritan University College",
+    "shortName": "Spiritan",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "spiritan",
+      "spiritan university college"
+    ]
+  },
+  {
+    "name": "University College of Management Studies (Accra)",
+    "shortName": "UCOMS",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "accra",
+      "ucoms",
+      "university college of management studies (accra)"
+    ]
+  },
+  {
+    "name": "University College of Management Studies (Kumasi)",
+    "shortName": "UCOMS",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "kumasi",
+      "ucoms",
+      "university college of management studies (kumasi)"
+    ]
+  },
+  {
+    "name": "Webster University Ghana Campus",
+    "shortName": "Webster",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "webster",
+      "webster university ghana campus"
+    ]
+  },
+  {
+    "name": "West End University College",
+    "shortName": "WEUC",
+    "type": "private",
+    "regionId": "central",
+    "aliases": [
+      "west end university college",
+      "weuc"
+    ]
+  },
+  {
+    "name": "Wisconsin International University College (Accra)",
+    "shortName": "WIUC",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "accra",
+      "wisconsin",
+      "wisconsin international university college (accra)",
+      "wiuc"
+    ]
+  },
+  {
+    "name": "Wisconsin International University College (Kumasi)",
+    "shortName": "WIUC",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "kumasi",
+      "wisconsin",
+      "wisconsin international university college (kumasi)",
+      "wiuc"
+    ]
+  },
+  {
+    "name": "Zenith University College",
+    "shortName": "ZUC",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "zenith",
+      "zenith university college",
+      "zuc"
+    ]
+  },
+  {
+    "name": "Palm University College",
+    "shortName": "PaUC",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "palm university college",
+      "pauc"
+    ]
+  },
+  {
+    "name": "Kings University College",
+    "shortName": "KUC",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "kings university college",
+      "kuc"
+    ]
+  },
+  {
+    "name": "Kessben University College",
+    "shortName": "Kessben",
+    "type": "private",
+    "regionId": "ashanti",
+    "aliases": [
+      "kessben",
+      "kessben university college"
+    ]
+  },
+  {
+    "name": "Nduom School of Business and Technology",
+    "shortName": "NSBT",
+    "type": "private",
+    "regionId": "central",
+    "aliases": [
+      "nduom school of business and technology",
+      "nsbt"
+    ]
+  },
+  {
+    "name": "Regentropfen University College",
+    "shortName": "Regentropfen",
+    "type": "private",
+    "regionId": "upper-east",
+    "aliases": [
+      "regentropfen",
+      "regentropfen university college"
+    ]
+  },
+  {
+    "name": "Technical University College, Ghana (Tamale)",
+    "shortName": "TUCG",
+    "type": "private",
+    "regionId": "northern",
+    "aliases": [
+      "tamale",
+      "technical university college, ghana (tamale)",
+      "tucg"
+    ]
+  },
+  {
+    "name": "Open University of West Africa",
+    "shortName": "OUWA",
+    "type": "private",
+    "regionId": "greater-accra",
+    "aliases": [
+      "open university of west africa",
+      "ouwa"
+    ]
+  }
+]

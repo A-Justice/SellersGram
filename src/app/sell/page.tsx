@@ -23,7 +23,7 @@ import {
 import { createListing } from "@/lib/listings-store";
 import { userFacingError } from "@/lib/user-errors";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { REGIONS } from "@/lib/regions";
+import { placeOptionsForRegion, REGIONS } from "@/lib/regions";
 import { normalizeVideoUrlInput, parseVideoUrl } from "@/lib/video-url";
 
 const STEPS = ["Photos", "Details", "Place", "Contact"];
@@ -105,7 +105,9 @@ export default function SellPage() {
   const [negotiable, setNegotiable] = useState(draft?.negotiable ?? true);
   const [contactForPrice, setContactForPrice] = useState(draft?.contactForPrice ?? false);
   const [regionId, setRegionId] = useState(draft?.regionId ?? "");
-  const [city, setCity] = useState(draft?.city ?? "");
+  const [city, setCity] = useState(
+    typeof draft?.city === "string" ? draft.city : "",
+  );
   const [videoUrl, setVideoUrl] = useState(draft?.videoUrl ?? "");
   const [attributes, setAttributes] = useState<Record<string, string>>(
     draft?.attributes ?? {},
@@ -130,8 +132,8 @@ export default function SellPage() {
   const profilePhone = (user?.phone || "").trim();
   const hasProfilePhone = Boolean(profilePhone);
 
-  const cities = useMemo(
-    () => REGIONS.find((region) => region.id === regionId)?.cities || [],
+  const placeOptions = useMemo(
+    () => placeOptionsForRegion(regionId),
     [regionId],
   );
 
@@ -644,11 +646,18 @@ export default function SellPage() {
                   }))}
                 />
               </Field>
-              <Field id="city" label="City" error={fieldErrors.city}>
+              <Field
+                id="city"
+                label="City or campus"
+                error={fieldErrors.city}
+              >
                 <Select
                   value={city}
+                  searchable
                   placeholder={
-                    regionId ? "Choose city" : "Choose a region first"
+                    regionId
+                      ? "Choose city or campus"
+                      : "Choose a region first"
                   }
                   onChange={(value) => {
                     setCity(value);
@@ -659,7 +668,7 @@ export default function SellPage() {
                       return next;
                     });
                   }}
-                  options={cities.map((item) => ({ value: item, label: item }))}
+                  options={placeOptions}
                 />
               </Field>
             </>

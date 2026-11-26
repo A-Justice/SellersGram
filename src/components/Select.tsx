@@ -7,6 +7,10 @@ import { createPortal } from "react-dom";
 export type SelectOption = {
   value: string;
   label: string;
+  /** Optional section header when options are grouped (e.g. Campuses / Cities). */
+  group?: string;
+  /** Extra searchable text (nicknames, short names) — not shown in the UI. */
+  keywords?: string;
 };
 
 type PanelPosition = {
@@ -42,14 +46,69 @@ export function Select({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listId = useId();
-  const selected = options.find((option) => option.value === value);
-  const canSearch = searchable ?? options.length > 12;
+  const normalizedOptions = useMemo(() => {
+    return options.map((option) => {
+      const rawValue = option.value as unknown;
+      // Unwrap accidental `{ value: PlaceOption, label: PlaceOption }` maps.
+      if (rawValue && typeof rawValue === "object" && "value" in rawValue) {
+        const inner = rawValue as SelectOption;
+        return {
+          value: String(inner.value ?? ""),
+          label: String(inner.label ?? inner.value ?? ""),
+          group: option.group ?? inner.group,
+          keywords: String(
+            option.keywords ?? inner.keywords ?? inner.label ?? "",
+          ),
+        };
+      }
+      return {
+        value: String(option.value ?? ""),
+        label: String(option.label ?? option.value ?? ""),
+        group: option.group,
+        keywords: String(option.keywords ?? option.label ?? option.value ?? ""),
+      };
+    });
+  }, [options]);
+
+  const selected = normalizedOptions.find((option) => option.value === value);
+  const canSearch = searchable ?? normalizedOptions.length > 12;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter((option) => option.label.toLowerCase().includes(q));
-  }, [options, query]);
+    if (!q) return normalizedOptions;
+    return normalizedOptions.filter((option) => {
+      const haystack = [
+        option.label,
+        option.value,
+        option.group,
+        option.keywords,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [normalizedOptions, query]);
+
+  const filteredRows = useMemo(() => {
+    const rows: Array<
+      | { kind: "group"; label: string }
+      | { kind: "option"; option: SelectOption; key: string }
+    > = [];
+    let lastGroup: string | undefined;
+    filtered.forEach((option, index) => {
+      if (option.group && option.group !== lastGroup) {
+        rows.push({ kind: "group", label: option.group });
+        lastGroup = option.group;
+      }
+      rows.push({
+        kind: "option",
+        option,
+        key: `${option.group || "item"}:${option.value}:${index}`,
+      });
+    });
+    return rows;
+  }, [filtered]);
 
   useEffect(() => {
     setMounted(true);
@@ -172,13 +231,25 @@ export function Select({
         className="select-panel-scroll max-h-[inherit] overflow-y-auto overscroll-contain p-1.5"
         style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
       >
-        {filtered.length === 0 ? (
+        {filteredRows.length === 0 ? (
           <li className="px-3 py-2.5 text-sm text-muted">No matches</li>
         ) : (
-          filtered.map((option) => {
+          filteredRows.map((row) => {
+            if (row.kind === "group") {
+              return (
+                <li
+                  key={`group-${row.label}`}
+                  role="presentation"
+                  className="px-3 pb-1 pt-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted first:pt-1"
+                >
+                  {row.label}
+                </li>
+              );
+            }
+            const { option, key } = row;
             const active = option.value === value;
             return (
-              <li key={option.value || "__empty"} role="presentation">
+              <li key={key} role="presentation">
                 <button
                   type="button"
                   role="option"
