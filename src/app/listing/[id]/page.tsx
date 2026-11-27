@@ -43,8 +43,9 @@ function listingDescription(
 }
 
 function listingOgImage(origin: string, id: string, alt: string) {
-  // Dedicated API path — absolute HTTPS JPEG. Meta wants og:image as an image URL object.
-  const url = `${origin}/api/og/listing/${id}`;
+  // Use the listing opengraph-image route (NOT /api/…) so robots.txt Allow works.
+  // /api/ is Disallow’d — Facebook skips those URLs and falls back to Azure WebP.
+  const url = `${origin}/listing/${id}/opengraph-image`;
   return {
     url,
     secureUrl: url,
@@ -78,6 +79,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         card: "summary_large_image",
         images: [image.url],
       },
+      other: undefined,
     };
   }
 
@@ -109,15 +111,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       images: [image.url],
     },
-    // Belt-and-suspenders for crawlers that only look at flat og:* properties.
-    other: {
-      "og:image": image.url,
-      "og:image:secure_url": image.url,
-      "og:image:type": "image/jpeg",
-      "og:image:width": "1200",
-      "og:image:height": "630",
-      ...(category ? { "product:category": category } : {}),
-    },
+    // Do not put og:* in `other` — Next emits name="og:image" (invalid). Use openGraph only.
+    other: category ? { "product:category": category } : undefined,
   };
 }
 

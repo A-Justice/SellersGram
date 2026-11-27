@@ -22,7 +22,11 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        allow: [
+          "/",
+          // Social crawlers must fetch OG JPEGs (Disallow /api/ would block these).
+          "/api/og/",
+        ],
         disallow: [
           "/admin",
           "/admin/",
