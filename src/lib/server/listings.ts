@@ -80,10 +80,6 @@ function fromSnap(snap: QueryDocumentSnapshot<DocumentData>): Listing {
   return toListing(snap.id, snap.data(), sellerIdFromPath(snap.ref.path));
 }
 
-function hasAdminCredentials() {
-  return Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim());
-}
-
 /** Full ads index — same shape the browser already loads via collectionGroup("ads"). */
 let adsIndex: { at: number; byId: Map<string, Listing> } | null = null;
 const ADS_INDEX_TTL_MS = 60_000;
@@ -144,8 +140,19 @@ async function getListingViaClient(listingId: string): Promise<Listing | null> {
   return all.get(listingId) || null;
 }
 
+/** True when Admin SDK can auth without hanging (service account or Cloud Run/FAH ADC). */
+function canUseAdminSdk() {
+  return (
+    Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim()) ||
+    Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS) ||
+    // Firebase App Hosting / Cloud Run
+    Boolean(process.env.K_SERVICE) ||
+    Boolean(process.env.FIREBASE_CONFIG)
+  );
+}
+
 async function getListingViaAdmin(listingId: string): Promise<Listing | null> {
-  if (!hasAdminCredentials() || !adminReady()) return null;
+  if (!adminReady() || !canUseAdminSdk()) return null;
   const db = adminDb();
 
   try {
@@ -163,7 +170,7 @@ async function getListingViaAdmin(listingId: string): Promise<Listing | null> {
       );
     }
   } catch {
-    // ignore
+    // Index may be missing — fall through.
   }
 
   try {
@@ -181,8 +188,8 @@ async function getListingViaAdmin(listingId: string): Promise<Listing | null> {
     if (hit && looksLikeListing(hit.data())) {
       return toListing(hit.id, hit.data(), sellerIdFromPath(hit.ref.path));
     }
-  } catch {
-    // ignore
+  } catch (error) {
+    console.error("admin ads scan failed", listingId, error);
   }
 
   return null;
@@ -193,7 +200,16 @@ export async function getListingById(id: string): Promise<Listing | null> {
   const listingId = id.trim();
   if (!listingId) return null;
 
-  // Prefer the public client SDK locally (no service account needed).
+  // On App Hosting, Admin SDK (ADC) is more reliable than the client SDK.
+  if (typeof window === "undefined" && canUseAdminSdk()) {
+    try {
+      const viaAdmin = await getListingViaAdmin(listingId);
+      if (viaAdmin) return viaAdmin;
+    } catch (error) {
+      console.error("getListingViaAdmin failed", listingId, error);
+    }
+  }
+
   try {
     const viaClient = await getListingViaClient(listingId);
     if (viaClient) return viaClient;
@@ -201,12 +217,7 @@ export async function getListingById(id: string): Promise<Listing | null> {
     console.error("getListingViaClient failed", listingId, error);
   }
 
-  try {
-    return await getListingViaAdmin(listingId);
-  } catch (error) {
-    console.error("getListingViaAdmin failed", listingId, error);
-    return null;
-  }
+  return null;
 }
 
 export type SitemapListing = {

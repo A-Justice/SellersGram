@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isIndexableHost, isProductionSite } from "@/lib/env";
+import { renderListingCrawlHtml } from "@/lib/server/listing-crawl-html";
 
 /** Crawlers that do not execute JS / wait for streamed head updates. */
 const SOCIAL_BOT =
@@ -14,28 +15,40 @@ function requestHost(request: NextRequest) {
   return request.nextUrl.hostname;
 }
 
-function rewriteSocialListing(request: NextRequest) {
+/**
+ * Return OG HTML in the real head for social crawlers (Meta webmaster docs).
+ * Do not self-fetch /crawl (deadlocks) and do not rely on rewrite (FAH drops it).
+ */
+async function socialListingResponse(request: NextRequest) {
   const ua = request.headers.get("user-agent") ?? "";
   if (!SOCIAL_BOT.test(ua)) return null;
 
   const match = request.nextUrl.pathname.match(/^\/listing\/([^/]+)\/?$/);
   if (!match) return null;
 
-  const url = request.nextUrl.clone();
-  url.pathname = `/crawl/listing/${match[1]}`;
-  return NextResponse.rewrite(url);
+  try {
+    const html = await renderListingCrawlHtml(match[1]!);
+    return new NextResponse(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=60, s-maxage=300",
+        "X-Vg-Og": "inline-crawl",
+      },
+    });
+  } catch (error) {
+    console.error("social listing OG HTML failed", error);
+    return null;
+  }
 }
 
 /**
  * Staging / preview / localhost must never compete with production in Google.
  * On Firebase App Hosting the edge Host may be the *.hosted.app name even for
  * vendorsgram.com — so also trust NEXT_PUBLIC_APP_URL for production deploys.
- *
- * Social bots get a tiny HTML document with OG tags in the real head — App
- * Router can otherwise stream meta after </head>, which Facebook ignores.
  */
-export function proxy(request: NextRequest) {
-  const social = rewriteSocialListing(request);
+export async function proxy(request: NextRequest) {
+  const social = await socialListingResponse(request);
   if (social) return social;
 
   if (isProductionSite() || isIndexableHost(requestHost(request))) {
