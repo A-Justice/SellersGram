@@ -26,6 +26,8 @@ export default function robots(): MetadataRoute.Robots {
           "/",
           // Social crawlers must fetch OG JPEGs (Disallow /api/ would block these).
           "/api/og/",
+          "/og/",
+          "/crawl/",
         ],
         disallow: [
           "/admin",

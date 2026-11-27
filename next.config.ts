@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      // Facebook prefers image URLs that end in .jpg
+      {
+        source: "/og/listing/:id.jpg",
+        destination: "/og/listing/:id",
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

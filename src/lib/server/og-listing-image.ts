@@ -85,9 +85,11 @@ export async function buildListingOgJpeg(listingId: string): Promise<Buffer> {
 }
 
 export function ogImageResponse(jpeg: Buffer) {
-  return new Response(new Uint8Array(jpeg), {
+  const body = new Uint8Array(jpeg);
+  return new Response(body, {
     headers: {
       "Content-Type": "image/jpeg",
+      "Content-Length": String(body.byteLength),
       "Cache-Control":
         "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
     },

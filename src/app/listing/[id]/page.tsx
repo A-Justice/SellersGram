@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { categoryById } from "@/lib/categories";
-import { isProductionSite, publicEnv } from "@/lib/env";
-import { formatGhs } from "@/lib/format";
-import { regionById } from "@/lib/regions";
+import { isProductionSite } from "@/lib/env";
+import {
+  getListingOgFields,
+  listingOgImageUrl,
+  siteOrigin,
+} from "@/lib/server/listing-og-meta";
 import { getListingById } from "@/lib/server/listings";
 import { ListingPageClient } from "./ListingPageClient";
 
@@ -13,39 +16,8 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-function siteOrigin() {
-  return publicEnv.appUrl.replace(/\/$/, "") || "https://vendorsgram.com";
-}
-
-/** Facebook’s parser is happier without emoji in og:description. */
-function stripForOg(text: string) {
-  return text
-    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function listingDescription(
-  listing: NonNullable<Awaited<ReturnType<typeof getListingById>>>,
-) {
-  const price = listing.contactForPrice
-    ? "Contact for price"
-    : formatGhs(listing.priceGhs).replace("GH₵", "GHS");
-  const place = [listing.city, regionById(listing.regionId)?.name]
-    .filter(Boolean)
-    .join(", ");
-  const category = categoryById(listing.categoryId)?.name;
-  const snippet = stripForOg(listing.description).slice(0, 110);
-  return [price, place, category, snippet, "Vendors Gram"]
-    .filter(Boolean)
-    .join(" · ")
-    .slice(0, 160);
-}
-
 function listingOgImage(origin: string, id: string, alt: string) {
-  // Use the listing opengraph-image route (NOT /api/…) so robots.txt Allow works.
-  // /api/ is Disallow’d — Facebook skips those URLs and falls back to Azure WebP.
-  const url = `${origin}/listing/${id}/opengraph-image`;
+  const url = listingOgImageUrl(origin, id);
   return {
     url,
     secureUrl: url,
@@ -58,20 +30,17 @@ function listingOgImage(origin: string, id: string, alt: string) {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const listing = await getListingById(id);
-  const origin = siteOrigin();
-  const url = `${origin}/listing/${id}`;
-  const alt = listing?.title || "Vendors Gram listing";
-  const image = listingOgImage(origin, id, alt);
+  const og = await getListingOgFields(id);
+  const image = listingOgImage(og.origin, id, og.alt);
 
-  if (!listing) {
+  if (!og.listing) {
     return {
       title: "Ad not found",
-      metadataBase: new URL(origin),
+      metadataBase: new URL(og.origin),
       robots: { index: false, follow: false },
       openGraph: {
         type: "website",
-        url,
+        url: og.url,
         siteName: "Vendors Gram",
         images: [image],
       },
@@ -79,36 +48,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         card: "summary_large_image",
         images: [image.url],
       },
-      other: undefined,
     };
   }
 
-  const category = categoryById(listing.categoryId)?.name;
-  const title = listing.title;
-  const description = listingDescription(listing);
-  const indexable = isProductionSite() && listing.status === "live";
+  const category = categoryById(og.listing.categoryId)?.name;
+  const indexable = isProductionSite() && og.listing.status === "live";
 
   return {
-    metadataBase: new URL(origin),
-    title,
-    description,
-    alternates: indexable ? { canonical: url } : undefined,
+    metadataBase: new URL(og.origin),
+    title: og.title,
+    description: og.description,
+    alternates: indexable ? { canonical: og.url } : undefined,
     robots: indexable
       ? { index: true, follow: true }
       : { index: false, follow: false },
     openGraph: {
       type: "website",
-      url,
-      title,
-      description,
+      url: og.url,
+      title: og.title,
+      description: og.description,
       siteName: "Vendors Gram",
       locale: "en_GH",
       images: [image],
     },
     twitter: {
       card: "summary_large_image",
-      title,
-      description,
+      title: og.title,
+      description: og.description,
       images: [image.url],
     },
     // Do not put og:* in `other` — Next emits name="og:image" (invalid). Use openGraph only.

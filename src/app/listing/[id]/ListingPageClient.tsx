@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, Shield } from "lucide-react";
 import { DeleteAdButton } from "@/components/DeleteAdButton";
 import { ListingAttributes } from "@/components/ListingAttributes";
@@ -20,7 +20,10 @@ import { useAuth } from "@/context/AuthContext";
 import type { Listing } from "@/data/types";
 import { categoryById } from "@/lib/categories";
 import { trackListingEngagement } from "@/lib/engagement-store";
-import { startThread } from "@/lib/chat-store";
+import {
+  ensureBuyerListingThread,
+  inboxDraftStorageKey,
+} from "@/lib/chat-store";
 import { boostDaysLeft, formatGhs, isBoosted, timeAgo } from "@/lib/format";
 import { setListingStatus } from "@/lib/listings-store";
 import { regionById } from "@/lib/regions";
@@ -28,6 +31,10 @@ import { toWhatsAppLink } from "@/lib/phone";
 import { markSellerDigestSeen } from "@/lib/seller-digest";
 import { ListingDetailSkeleton } from "@/components/PageSkeleton";
 import { useListings } from "@/lib/use-listings";
+
+function defaultChatNote(title: string) {
+  return `Hi, is "${title}" still available?`;
+}
 
 export function ListingPageClient({
   listingId,
@@ -41,8 +48,9 @@ export function ListingPageClient({
     listings.find((item) => item.id === listingId) ||
     (initialListing?.id === listingId ? initialListing : undefined);
   const [active, setActive] = useState(0);
-  const [note, setNote] = useState("Hi, is this still available?");
-  const [sent, setSent] = useState(false);
+  const [note, setNote] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const noteSeeded = useRef(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -85,6 +93,12 @@ export function ListingPageClient({
     void markSellerDigestSeen(user.uid);
   }, [isMine, user]);
 
+  useEffect(() => {
+    if (!listing || noteSeeded.current) return;
+    noteSeeded.current = true;
+    setNote(defaultChatNote(listing.title));
+  }, [listing]);
+
   if (!listing) {
     if (!ready) return <ListingDetailSkeleton />;
     return (
@@ -106,10 +120,21 @@ export function ListingPageClient({
       router.push(`/login?next=/listing/${listing!.id}`);
       return;
     }
-    if (isMine) return;
-    await startThread(listing!, user, note);
-    setSent(true);
-    router.push("/inbox");
+    if (isMine || chatBusy) return;
+    setChatBusy(true);
+    try {
+      const thread = await ensureBuyerListingThread(listing!, user);
+      // New / empty thread: prefill composer — do not send until they hit Send.
+      if (!thread.lastMessage.trim()) {
+        const text =
+          note.trim() || defaultChatNote(listing!.title);
+        sessionStorage.setItem(inboxDraftStorageKey(thread.id), text);
+      }
+      router.push(`/inbox?thread=${thread.id}`);
+    } catch (error) {
+      console.error(error);
+      setChatBusy(false);
+    }
   }
 
   return (
@@ -286,13 +311,14 @@ export function ListingPageClient({
                 ) : null}
                 <button
                   type="button"
-                  onClick={chat}
+                  onClick={() => void chat()}
+                  disabled={chatBusy}
                   className={`${
                     toWhatsAppLink(listing.seller.phone) ? "" : "col-span-2 "
-                  }inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-paper`}
+                  }inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-paper disabled:opacity-60`}
                 >
                   <MessageCircle className="size-4" />
-                  Chat
+                  {chatBusy ? "Opening…" : "Chat"}
                 </button>
               </>
             )}
@@ -301,11 +327,9 @@ export function ListingPageClient({
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
+              placeholder={defaultChatNote(listing.title)}
               className="mt-3 h-20 w-full resize-none rounded-2xl bg-canvas px-3 py-2 text-sm outline-none"
             />
-          )}
-          {sent && (
-            <p className="mt-2 text-xs text-accent">Message sent to inbox.</p>
           )}
         </div>
 

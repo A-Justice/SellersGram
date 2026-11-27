@@ -143,19 +143,49 @@ function lastMessagePreview(text: string, reference?: ChatProductReference) {
   return "";
 }
 
-export async function startThread(
+export function inboxDraftStorageKey(threadId: string) {
+  return `vg-inbox-draft:${threadId}`;
+}
+
+/** Existing buyer↔listing thread, if any (most recently updated). */
+export async function findBuyerListingThread(
+  buyerId: string,
+  listingId: string,
+): Promise<ChatThread | null> {
+  if (!db) return null;
+  const snap = await getDocs(
+    query(collection(db, "threads"), where("buyerId", "==", buyerId)),
+  );
+  const matches = snap.docs
+    .filter((item) => String(item.data().listingId || "") === listingId)
+    .map((item) => threadFromDoc(item.id, item.data()))
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+  return matches[0] || null;
+}
+
+/**
+ * Open or create a thread for this listing — no first message, no notify.
+ * Caller prefills the inbox composer when the thread is new/empty.
+ */
+export async function ensureBuyerListingThread(
   listing: Listing,
   user: { uid: string; name: string },
-  text: string,
-) {
+): Promise<ChatThread> {
   if (!db) throw new Error("Firebase is not connected.");
   const sellerId = listing.sellerId || listing.seller.id;
   if (sellerId === user.uid) {
     throw new Error("You cannot chat with yourself.");
   }
+
+  const existing = await findBuyerListingThread(user.uid, listing.id);
+  if (existing) return existing;
+
   const threadRef = doc(collection(db, "threads"));
   const now = new Date().toISOString();
-  await setDoc(threadRef, {
+  const data = {
     listingId: listing.id,
     listingTitle: listing.title,
     listingPhoto: listing.photoUrls[0] || "",
@@ -163,26 +193,11 @@ export async function startThread(
     sellerId,
     buyerName: user.name,
     sellerName: listing.seller.name,
-    lastMessage: text,
+    lastMessage: "",
     updatedAt: now,
-  });
-  await addDoc(collection(db, "threads", threadRef.id, "messages"), {
-    fromUid: user.uid,
-    from: "buyer",
-    text,
-    createdAt: now,
-    createdAtServer: serverTimestamp(),
-  });
-  await notifyUser({
-    userId: sellerId,
-    fromUid: user.uid,
-    title: `${user.name} messaged you`,
-    body: text,
-    href: `/inbox?thread=${threadRef.id}`,
-    threadId: threadRef.id,
-    type: "message",
-  });
-  return threadRef.id;
+  };
+  await setDoc(threadRef, data);
+  return threadFromDoc(threadRef.id, data);
 }
 
 export async function sendMessage(

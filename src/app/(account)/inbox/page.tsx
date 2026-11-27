@@ -15,6 +15,7 @@ import {
   clearThread,
   deleteMessage,
   editMessage,
+  inboxDraftStorageKey,
   sendMessage,
   subscribeMessages,
   subscribeThreads,
@@ -105,6 +106,22 @@ function Inbox() {
     setUnsentMessages([]);
     setDraftReference(null);
     setPickerOpen(false);
+    if (!activeId) {
+      setDraft("");
+      return;
+    }
+    try {
+      const key = inboxDraftStorageKey(activeId);
+      const stored = sessionStorage.getItem(key);
+      if (stored) {
+        setDraft(stored);
+        sessionStorage.removeItem(key);
+        return;
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+    setDraft("");
   }, [activeId]);
 
   useEffect(() => {
